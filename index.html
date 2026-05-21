@@ -1287,7 +1287,7 @@ const PASS_SCORE = 80;
 // Web App URL 請設定在同層的 config.js。
 // GitHub Pages 目錄需同時放置 index.html 與 config.js。
 // 若 config.js 未設定或未載入，系統會維持本機 localStorage 模式，方便測試。
-const APP_BUILD_VERSION = 'V124-record-delete-api-employeeid-separate';
+const APP_BUILD_VERSION = 'V124-records-employeeId-date-safe';
 
 const SHEETS_WEB_APP_URL = (window.ATC_CONFIG && window.ATC_CONFIG.SHEETS_WEB_APP_URL) ? window.ATC_CONFIG.SHEETS_WEB_APP_URL.trim() : "";
 
@@ -3037,7 +3037,7 @@ const Quiz = {
                 recordId: `rec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
                 u: App.user,
                 userCode: App.user,
-                employeeId: App.employeeId || App.getUserEmployeeId(App.user),
+                employeeId: App.getUserEmployeeId(App.user),
                 name: App.getUserName(App.user),
                 cid: course.id,
                 courseId: course.id,
