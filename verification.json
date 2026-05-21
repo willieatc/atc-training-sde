@@ -1,0 +1,16 @@
+{
+  "html_js_syntax": true,
+  "dedicated_record_delete_frontend": true,
+  "dedicated_record_delete_backend": true,
+  "delete_records_rebuilds_locks": true,
+  "account_sync_frontend": true,
+  "account_sync_backend": true,
+  "employeeId_separate_column": true,
+  "employeeId_not_password_bound": true,
+  "records_not_overwritten_by_admin_saveState": true,
+  "passscore_persist_preserved": true,
+  "v123_interface_preserved": true,
+  "submitScore_preserved": true,
+  "generated_at": "2026-05-21 01:14:51",
+  "overall_pass": true
+}
