@@ -1287,7 +1287,7 @@ const PASS_SCORE = 80;
 // Web App URL 請設定在同層的 config.js。
 // GitHub Pages 目錄需同時放置 index.html 與 config.js。
 // 若 config.js 未設定或未載入，系統會維持本機 localStorage 模式，方便測試。
-const APP_BUILD_VERSION = 'V124-unlock-cloud-status-fix';
+const APP_BUILD_VERSION = 'V124-admin-refresh-no-login';
 
 const SHEETS_WEB_APP_URL = (window.ATC_CONFIG && window.ATC_CONFIG.SHEETS_WEB_APP_URL) ? window.ATC_CONFIG.SHEETS_WEB_APP_URL.trim() : "";
 
@@ -1341,18 +1341,48 @@ const Backend = {
             this.loaded = true;
             this._lastPendingNotice = '';
             this.setStatus('Google Sheets 已同步', 'var(--success-color)');
+            if (App.isInstructor && typeof Admin !== 'undefined' && Admin.refreshGsStatusForAdmin) {
+                Admin.refreshGsStatusForAdmin();
+                console.log('管理員重新整理狀態保留：Google Sheets 已同步');
+            }
             if (App.isInstructor && typeof Admin !== 'undefined' && Admin.refreshGsStatusForAdmin) Admin.refreshGsStatusForAdmin();
             return true;
         } catch (err) {
             console.error('Google Sheets load failed:', err);
             App.cloudReady = false;
             this.setStatus('雲端讀取失敗，為避免舊資料覆蓋雲端，管理員儲存已停用', 'var(--danger-color)');
+            if (App.isInstructor && typeof Admin !== 'undefined' && Admin.refreshGsStatusForAdmin) {
+                Admin.refreshGsStatusForAdmin();
+                console.log('管理員重新整理狀態保留：Google Sheets 同步失敗');
+            }
             if (App.isInstructor && typeof Admin !== 'undefined' && Admin.refreshGsStatusForAdmin) Admin.refreshGsStatusForAdmin();
             return false;
         }
     },
     
     
+    batchUnlockQuiz: async function(items) {
+        if (!SHEETS_WEB_APP_URL || SHEETS_WEB_APP_URL.includes('請貼上')) {
+            this.setStatus('⚠️ 尚未設定 Web App URL', 'var(--warning-color)');
+            return { ok: false, error: '尚未設定 Web App URL' };
+        }
+        try {
+            this.setStatus('批次解鎖同步中...', 'var(--warning-color)');
+            const res = await fetch(SHEETS_WEB_APP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'batchUnlockQuiz', items: items || [] })
+            });
+            const data = await res.json();
+            if (!data || data.ok !== true) throw new Error(data && data.error ? data.error : 'batchUnlockQuiz failed');
+            this.setStatus('批次解鎖已同步', 'var(--success-color)');
+            return { ok: true, data: data };
+        } catch (err) {
+            console.error('batchUnlockQuiz failed:', err);
+            this.setStatus('⚠️ 批次解鎖同步失敗', 'var(--danger-color)');
+            return { ok: false, error: String(err && err.message ? err.message : err) };
+        }
+    },
     unlockQuiz: async function(userCode, courseId, courseTitle) {
         if (!SHEETS_WEB_APP_URL || SHEETS_WEB_APP_URL.includes('請貼上')) {
             this.setStatus('⚠️ 尚未設定 Web App URL', 'var(--warning-color)');
@@ -1780,13 +1810,28 @@ const App = {
         return record.name || this.getUserName(record.u) || '';
     },
     restoreAdminSession: function() {
-        if (sessionStorage.getItem(this.ADMIN_SESSION_KEY) !== '1') return false;
+        try {
+            if (sessionStorage.getItem(this.ADMIN_SESSION_KEY) !== '1') return false;
+        } catch (e) {
+            return false;
+        }
+
         this.isInstructor = true;
         this.user = '管理員';
         this.employeeId = '';
         this.syncUI();
         this.switchAdmin(this.currentAdminTab || 'score');
-        setTimeout(() => Admin.refreshGsStatusForAdmin(), 0);
+
+        // 重新整理後不重新登入，只重新確認 Google Sheets 同步狀態。
+        setTimeout(async () => {
+            Backend.setStatus('Google Sheets 同步狀態確認中...', 'var(--warning-color)');
+            await Backend.loadState();
+            if (Admin.refreshGsStatusForAdmin) Admin.refreshGsStatusForAdmin();
+            if (this.currentAdminTab === 'score' && Admin.applyScoreFilter) Admin.applyScoreFilter();
+            else if (this.currentAdminTab === 'rec' && Admin.renderUsers) Admin.renderUsers();
+            else if (this.currentAdminTab === 'edit' && Admin.renderEditor) Admin.renderEditor();
+        }, 0);
+
         return true;
     },
     init: async function() {
@@ -1863,6 +1908,44 @@ const App = {
             if (latest) this.activeCourse = latest;
         }
         return this.activeCourse;
+    },
+    batchUnlockQuiz: async function(items) {
+        const cleanItems = (Array.isArray(items) ? items : []).map(item => ({
+            userCode: String(item.userCode || item.u || '').trim(),
+            courseId: item.courseId || item.cid || '',
+            courseTitle: String(item.courseTitle || item.c || '')
+        })).filter(item => item.userCode && item.courseId);
+
+        if (!cleanItems.length) return false;
+
+        const result = await Backend.batchUnlockQuiz(cleanItems);
+
+        // 只有雲端 API 成功，才更新本機解鎖狀態。
+        if (!(result && result.ok === true && result.data && result.data.ok === true)) {
+            return false;
+        }
+
+        if (!this.state.quizLocks) this.state.quizLocks = {};
+        if (!this.state.quizUnlocks) this.state.quizUnlocks = {};
+
+        cleanItems.forEach(item => {
+            delete this.state.quizLocks[this.lockKey(item.userCode, item.courseId)];
+            this.state.quizUnlocks[this.unlockKey(item.userCode, item.courseId)] = {
+                u: item.userCode,
+                cid: item.courseId,
+                c: item.courseTitle,
+                d: DateUtil.format()
+            };
+        });
+
+        if (result.data && result.data.state) {
+            if (result.data.state.quizLocks && typeof result.data.state.quizLocks === 'object') this.state.quizLocks = result.data.state.quizLocks;
+            if (result.data.state.quizUnlocks && typeof result.data.state.quizUnlocks === 'object') this.state.quizUnlocks = result.data.state.quizUnlocks;
+            if (Array.isArray(result.data.state.records)) this.state.records = result.data.state.records;
+        }
+
+        localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state));
+        return true;
     },
     unlockQuiz: async function(user, courseId) {
         const course = this.state.courses.find(c => c.id === courseId);
@@ -2058,15 +2141,27 @@ const App = {
     toAdmin: function() {
         if (this.isInstructor || prompt("管理密碼") === this.state.adminPw) {
             this.isInstructor = true;
-            sessionStorage.setItem(this.ADMIN_SESSION_KEY, '1');
+            try {
+                sessionStorage.setItem(this.ADMIN_SESSION_KEY, '1');
+            } catch (e) {}
             this.switchAdmin('score');
-        
-            setTimeout(() => Admin.refreshGsStatusForAdmin(), 0);
-} else {
+
+            setTimeout(() => {
+                if (Admin.refreshGsStatusForAdmin) Admin.refreshGsStatusForAdmin();
+            }, 0);
+        } else {
             alert("拒絕");
         }
     },
-    logoutInstructor: function() { this.quizInProgress = false; this.clearQuizSession(); this.isInstructor = false; this.toHome(); },
+    logoutInstructor: function() {
+        this.quizInProgress = false;
+        this.clearQuizSession();
+        this.isInstructor = false;
+        try {
+            sessionStorage.removeItem(this.ADMIN_SESSION_KEY);
+        } catch (e) {}
+        this.toHome();
+    },
     showSec: function(id) {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.getElementById(id).classList.add('active');
@@ -2527,6 +2622,7 @@ const Admin = {
         el.innerText = text || '';
     },
     refreshGsStatusForAdmin: function() {
+        // 重新整理後仍保留管理員登入，只更新同步狀態。
         if (!App.isInstructor) return;
         if (!Backend.enabled()) {
             this.showGsStatusForAdmin('目前為本機模式：尚未設定 Google Sheets Web App URL', 'var(--warning-color)');
@@ -2746,6 +2842,42 @@ const Admin = {
     },
     
     
+    batchUnlockSelected: async function() {
+        const checked = Array.from(document.querySelectorAll('#scoreTableArea .score-select:checked'));
+        if (!checked.length) return alert('請先勾選要解鎖的測驗紀錄。');
+
+        const items = [];
+        const seen = {};
+        checked.forEach(cb => {
+            const idx = parseInt(cb.value, 10);
+            const r = App.state.records[idx];
+            if (!r) return;
+            const userCode = String(r.u || r.userCode || '').trim();
+            const courseId = r.cid || r.courseId || '';
+            const courseTitle = String(r.c || r.courseTitle || '');
+            if (!userCode || !courseId) return;
+            const key = userCode + '__' + courseId;
+            if (seen[key]) return;
+            seen[key] = true;
+            items.push({ userCode, courseId, courseTitle });
+        });
+
+        if (!items.length) return alert('所選紀錄缺少學員或科目資訊，無法批次解鎖。');
+        if (!confirm(`確定批次解鎖 ${items.length} 筆測驗？解鎖後學員可重新測驗。`)) return;
+
+        const ok = await Admin.withButtonStatus(async () => {
+            return await App.batchUnlockQuiz(items);
+        }, { syncingText: '同步中...', successText: '✅ 已同步', failText: '⚠️ 同步失敗' });
+
+        if (ok) {
+            Admin.applyScoreFilter();
+            App.updateLoginStatus();
+            alert('✅ 批次解鎖已同步完成');
+        } else {
+            Backend.setStatus('⚠️ 批次解鎖同步失敗，雲端未變更', 'var(--danger-color)');
+            alert('⚠️ 批次解鎖同步失敗，雲端資料未變更。請確認 Web App 已重新部署，並已執行 ?action=setup。');
+        }
+    },
     unlockStudentQuiz: async function(u, courseId) {
         const course = App.state.courses.find(c => c.id === courseId);
         if (!course) return alert('找不到科目，無法解鎖。');
@@ -2918,7 +3050,8 @@ const Admin = {
                     <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#8b949e;">
                         <input type="checkbox" class="row-check" id="selectVisibleScores" onchange="Admin.toggleVisibleScoreRecords(this.checked)"> 選取目前顯示紀錄
                     </label>
-                    <button class="btn btn-danger btn-sm" onclick="Admin.batchDeleteScoreRecords()">批次刪除紀錄</button>
+                    <button class="btn btn-warning btn-sm" onclick="Admin.batchUnlockSelected()">🔓 批次解鎖</button>
+                <button class="btn btn-danger btn-sm" onclick="Admin.batchDeleteScoreRecords()">批次刪除紀錄</button>
                 </div>
             </div>
             <table>
