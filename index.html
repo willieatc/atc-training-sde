@@ -1287,7 +1287,7 @@ const PASS_SCORE = 80;
 // Web App URL 請設定在同層的 config.js。
 // GitHub Pages 目錄需同時放置 index.html 與 config.js。
 // 若 config.js 未設定或未載入，系統會維持本機 localStorage 模式，方便測試。
-const APP_BUILD_VERSION = 'V124-admin-login-gs-status';
+const APP_BUILD_VERSION = 'V124-questions-title-field';
 
 const SHEETS_WEB_APP_URL = (window.ATC_CONFIG && window.ATC_CONFIG.SHEETS_WEB_APP_URL) ? window.ATC_CONFIG.SHEETS_WEB_APP_URL.trim() : "";
 
@@ -1325,6 +1325,7 @@ const Backend = {
                 users: st.users && typeof st.users === 'object' ? st.users : {},
                 userNames: st.userNames && typeof st.userNames === 'object' ? st.userNames : {},
                 quizLocks: st.quizLocks && typeof st.quizLocks === 'object' ? st.quizLocks : {},
+                quizUnlocks: st.quizUnlocks && typeof st.quizUnlocks === 'object' ? st.quizUnlocks : {},
                 adminPw: st.adminPw || 'rctp3023'
             };
 
@@ -1352,6 +1353,34 @@ const Backend = {
     },
     
     
+    unlockQuiz: async function(user, courseId) {
+        const course = this.state.courses.find(c => c.id === courseId);
+        const courseTitle = course ? course.title : '';
+        const result = await Backend.unlockQuiz(user, courseId, courseTitle);
+
+        if (result && result.ok) {
+            if (!this.state.quizLocks) this.state.quizLocks = {};
+            if (!this.state.quizUnlocks) this.state.quizUnlocks = {};
+            delete this.state.quizLocks[this.lockKey(user, courseId)];
+            this.state.quizUnlocks[this.unlockKey(user, courseId)] = {
+                u: user,
+                cid: courseId,
+                c: courseTitle,
+                d: DateUtil.format()
+            };
+
+            if (result.data && result.data.state) {
+                if (result.data.state.quizLocks && typeof result.data.state.quizLocks === 'object') this.state.quizLocks = result.data.state.quizLocks;
+                if (result.data.state.quizUnlocks && typeof result.data.state.quizUnlocks === 'object') this.state.quizUnlocks = result.data.state.quizUnlocks;
+                if (Array.isArray(result.data.state.records)) this.state.records = result.data.state.records;
+            }
+
+            localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state));
+            return true;
+        }
+
+        return false;
+    },
     deleteScoreRecords: async function(recordIds) {
         if (!SHEETS_WEB_APP_URL || SHEETS_WEB_APP_URL.includes('請貼上')) {
             this.setStatus('⚠️ 尚未設定 Web App URL', 'var(--warning-color)');
