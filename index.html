@@ -35,6 +35,10 @@
         .btn-template:hover { filter: brightness(1.08); }
         .btn-answer-export { background: var(--accent-color); color: #0d1117; border: 1px solid rgba(88,166,255,0.55); }
         .btn-answer-export:hover { filter: brightness(1.08); }
+        .btn-question-export { background: #238636; color: #ffffff; border: 1px solid rgba(63,185,80,0.55); }
+        .btn-question-export:hover { filter: brightness(1.08); }
+        .btn-question-import { background: #1f6feb; color: #ffffff; border: 1px solid rgba(88,166,255,0.55); }
+        .btn-question-import:hover { filter: brightness(1.08); }
         .btn-icon-mono { font-size: 13px; line-height: 1; color: currentColor; }
         .btn-sm { padding: 5px 10px; font-size: 12px; }
         .btn:disabled { opacity: 0.45; cursor: not-allowed; filter: grayscale(0.35); }
@@ -1713,11 +1717,11 @@ body.question-sort-active .editor-helper {
 <div id="adminPasswordModal" class="admin-password-modal-overlay" onclick="App.closeAdminPasswordModal(event)">
     <div class="admin-password-modal" role="dialog" aria-modal="true" aria-labelledby="adminPasswordTitle" onclick="event.stopPropagation()">
         <h3 id="adminPasswordTitle">管理員登入</h3>
-        <div class="admin-password-desc">請輸入管理密碼。密碼預設以 * 號遮蔽，可點選右側眼睛圖示顯示或隱藏。</div>
+        <div class="admin-password-desc">請輸入管理密碼。密碼預設以 * 號遮蔽，可點選右側簡約符號切換顯示或隱藏。</div>
         <label for="adminPasswordInput" style="display:block; font-size:12px; color:#8b949e; margin-bottom:6px;">管理密碼</label>
         <div class="admin-password-input-wrap">
             <input type="password" id="adminPasswordInput" class="input-field" placeholder="請輸入管理密碼" autocomplete="current-password" onkeydown="App.handleAdminPasswordKey(event)">
-            <button type="button" id="adminPasswordToggle" class="admin-password-toggle" onclick="App.toggleAdminPasswordVisibility()" aria-label="顯示密碼" title="顯示密碼">👁️</button>
+            <button type="button" id="adminPasswordToggle" class="admin-password-toggle" onclick="App.toggleAdminPasswordVisibility()" aria-label="顯示密碼" title="顯示密碼">○</button>
         </div>
         <div id="adminPasswordError" class="admin-password-error"></div>
         <div class="admin-password-actions">
@@ -2843,7 +2847,8 @@ const App = {
         input.value = '';
         const toggle = document.getElementById('adminPasswordToggle');
         if (toggle) {
-            toggle.innerText = '👁️';
+            toggle.innerText = '○';
+            toggle.classList.remove('is-visible');
             toggle.setAttribute('aria-label', '顯示密碼');
             toggle.setAttribute('title', '顯示密碼');
         }
@@ -2860,6 +2865,13 @@ const App = {
             input.value = '';
             input.type = 'password';
         }
+        const toggle = document.getElementById('adminPasswordToggle');
+        if (toggle) {
+            toggle.innerText = '○';
+            toggle.classList.remove('is-visible');
+            toggle.setAttribute('aria-label', '顯示密碼');
+            toggle.setAttribute('title', '顯示密碼');
+        }
         if (error) error.innerText = '';
     },
     toggleAdminPasswordVisibility: function() {
@@ -2869,7 +2881,8 @@ const App = {
         const show = input.type === 'password';
         input.type = show ? 'text' : 'password';
         if (toggle) {
-            toggle.innerText = show ? '🙈' : '👁️';
+            toggle.innerText = show ? '◉' : '○';
+            toggle.classList.toggle('is-visible', show);
             toggle.setAttribute('aria-label', show ? '隱藏密碼' : '顯示密碼');
             toggle.setAttribute('title', show ? '隱藏密碼' : '顯示密碼');
         }
@@ -3080,8 +3093,8 @@ const Admin = {
         const target = Admin.getQuestionScrollTarget();
         const isPage = target === document.documentElement || target === document.body || target === document.scrollingElement;
         const rect = isPage ? { top: 0, bottom: window.innerHeight } : target.getBoundingClientRect();
-        const threshold = 150;
-        const maxSpeed = 78;
+        const threshold = 125;
+        const maxSpeed = 42;
         let speed = 0;
 
         if (point.clientY < rect.top + threshold) {
@@ -3199,11 +3212,11 @@ const Admin = {
                         <div class="question-toolbar">
                             <div>
                                 <h4>題庫內容</h4>
-                                <div class="editor-helper">可手動新增題目，或用 CSV 匯入／匯出題庫；按「選項」可展開編輯。只有按住題號旁的［☰］才會拖曳排序。</div>
+                                <div class="editor-helper">可手動新增題目，或用 CSV 匯入／匯出題庫；按「選項」可展開編輯。</div>
                             </div>
                             <div class="question-actions">
-                                <button class="btn btn-outline btn-sm" onclick="Admin.exportCourseQuestions(${ci})">📤 匯出題庫</button>
-                                <button class="btn btn-outline btn-sm" onclick="document.getElementById('f-csv-${ci}').click()">📥 匯入 CSV</button>
+                                <button class="btn btn-question-export btn-sm" onclick="Admin.exportCourseQuestions(${ci})">📤 匯出題庫</button>
+                                <button class="btn btn-question-import btn-sm" onclick="document.getElementById('f-csv-${ci}').click()">📥 匯入題庫</button>
                                 <input type="file" id="f-csv-${ci}" class="hidden" accept=".csv" onchange="Admin.impCSV(event, ${ci})">
                                 <button class="btn btn-primary btn-sm" onclick="Admin.addQ(${ci})">➕ 手動加題</button>
                                 <button class="btn btn-danger btn-sm" onclick="Admin.delAllQ(${ci})">刪除所有題目</button>
@@ -3240,8 +3253,8 @@ const Admin = {
                 direction: 'vertical',
                 scroll: true,
                 bubbleScroll: true,
-                scrollSensitivity: 150,
-                scrollSpeed: 58,
+                scrollSensitivity: 125,
+                scrollSpeed: 34,
                 forceFallback: true,
                 fallbackOnBody: true,
                 fallbackTolerance: 4,
