@@ -682,10 +682,10 @@
             z-index: 10;
         }
 
-        /* v123：科目名稱與及格分數整合 */
+        /* v136：科目設定與教材連結合併，減少版面佔用 */
         .course-setting-grid {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) 150px;
+            grid-template-columns: minmax(180px, 1fr) 132px minmax(240px, 1.25fr);
             gap: 12px;
             align-items: end;
         }
@@ -3036,12 +3036,13 @@ const Admin = {
                     </div>
                 </div>
                 <div class="course-content">
-                    <div class="editor-card">
+                    <div class="editor-card compact-course-card">
                         <div class="editor-card-title">
                             <div>
-                                <h4>科目設定</h4>
-                                
+                                <h4>科目設定與教材連結</h4>
+                                <div class="editor-helper">科目名稱、及格分數與教材 iframe 嵌入碼集中於此區塊，減少編輯畫面佔用。</div>
                             </div>
+                            ${c.embedUrl ? '<span class="link-status-label">● 已設定教材</span>' : '<span style="font-size:12px; color:#8b949e;">尚未設定教材</span>'}
                         </div>
                         <div class="course-setting-grid">
                             <div>
@@ -3052,17 +3053,11 @@ const Admin = {
                                 <label>及格分數</label>
                                 <input type="number" min="0" max="100" class="input-field c-pass-score" value="${Number.isFinite(Number(c.passScore)) ? Number(c.passScore) : 80}" placeholder="及格分數">
                             </div>
-                        </div>
-                    </div>
-                    <div class="editor-card">
-                        <div class="editor-card-title">
                             <div>
-                                <h4>教材嵌入連結</h4>
-                                <div class="editor-helper">請貼上 iframe 嵌入碼。</div>
+                                <label>教材嵌入連結</label>
+                                <input type="text" class="input-field c-url" value="${Admin.esc(c.embedUrl || '')}" placeholder="請貼上 iframe 嵌入碼">
                             </div>
-                            ${c.embedUrl ? '<span class="link-status-label">● 已設定連結</span>' : '<span style="font-size:12px; color:#8b949e;">尚未設定</span>'}
                         </div>
-                        <input type="text" class="input-field c-url" value="${Admin.esc(c.embedUrl || '')}">
                     </div>
                     <div class="editor-card">
                         <div class="question-toolbar">
