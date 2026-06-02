@@ -1726,6 +1726,25 @@ body.question-sort-active .editor-helper {
             min-height: 36px;
         }
 
+    
+        /* v159：帳號管理區再緊湊化 */
+        .account-toolbar-compact {
+            padding: 8px 10px;
+            margin-bottom: 10px;
+            gap: 8px;
+        }
+        .account-toolbar-compact .account-search-box {
+            flex: 0 0 240px;
+            min-width: 200px;
+        }
+        .account-toolbar-compact .input-field {
+            min-height: 34px;
+        }
+        .account-summary-line .account-employee {
+            color: #fff;
+            font-weight: 700;
+        }
+
     </style>
 </head>
 <body oncontextmenu="return false;"> 
@@ -4025,11 +4044,11 @@ const Admin = {
             const employeeId = App.getUserEmployeeId(u);
             const employeeText = employeeId ? employeeId : '未登錄';
             return `
-            <div class="account-card" data-account-user="${Admin.esc(String(u).toLowerCase())}">
+            <div class="account-card" data-account-user="${Admin.esc((String(u) + ' ' + String(employeeText)).toLowerCase())}">
                 <input type="checkbox" class="row-check account-select" value="${safeU}" aria-label="選取 ${Admin.esc(u)}">
                 <div class="account-summary-line">
-                    <span class="account-name"><span class="account-order">${idx + 1}</span>. 代字：${Admin.esc(u)}</span>
-                    <span class="account-meta-inline">員工編號：${Admin.esc(employeeText)}</span>
+                    <span class="account-name"><span class="account-order">${idx + 1}</span>. ${Admin.esc(u)}</span>
+                    <span class="account-meta-inline account-employee">員工編號：${Admin.esc(employeeText)}</span>
                     <span class="account-meta-inline">成績紀錄：${recordCount} 筆</span>
                 </div>
                 <div class="account-actions">
@@ -4043,13 +4062,10 @@ const Admin = {
                 <h3>🔒 人員帳號管理</h3>
                 <button class="btn btn-warning btn-sm" onclick="Admin.changeAdminPassword()">🔐 修改管理員密碼</button>
             </div>
-            <div class="account-toolbar" style="align-items:flex-end;">
-                <div style="min-width:160px;">
-                    <strong>帳號清單</strong>
-                    <div id="accountCountText" style="font-size:12px; color:#8b949e; margin-top:4px;">共 ${users.length} 組代字</div>
-                </div>
+            <div class="account-toolbar account-toolbar-compact" style="align-items:center;">
                 <div class="account-search-box">
-                    <input type="text" id="accountSearchInput" class="input-field" style="margin:0" placeholder="搜尋代字..." oninput="Admin.applyUserFilter()">
+                    <input type="text" id="accountSearchInput" class="input-field" style="margin:0" placeholder="搜尋代字／員工編號..." oninput="Admin.applyUserFilter()">
+                    <span id="accountCountText" class="hidden">共 ${users.length} 組代字</span>
                 </div>
                 <div class="batch-actions" style="margin-left:auto; padding-bottom:2px;">
                     <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#8b949e; white-space:nowrap;">
