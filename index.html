@@ -1667,6 +1667,46 @@ body.question-sort-active .editor-helper {
         .btn-detail-export { background: #4f8edc !important; color: #0d1117 !important; border-color: rgba(79,142,220,0.35) !important; }
         .btn:hover { filter: brightness(1.06); }
 
+    
+        /* v156：帳號清單緊湊化 */
+        .account-toolbar {
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            gap: 10px;
+        }
+        .account-search-box {
+            flex: 0 0 200px;
+        }
+        .account-card {
+            padding: 10px 12px;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .account-summary-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .account-summary-line .account-name {
+            flex: 0 0 auto;
+        }
+        .account-meta-inline {
+            color: #8b949e;
+            font-size: 12px;
+            flex: 0 0 auto;
+        }
+        @media (max-width: 760px) {
+            .account-summary-line {
+                flex-wrap: wrap;
+                white-space: normal;
+                row-gap: 4px;
+            }
+        }
+
     </style>
 </head>
 <body oncontextmenu="return false;"> 
@@ -3968,9 +4008,10 @@ const Admin = {
             return `
             <div class="account-card" data-account-user="${Admin.esc(String(u).toLowerCase())}">
                 <input type="checkbox" class="row-check account-select" value="${safeU}" aria-label="選取 ${Admin.esc(u)}">
-                <div>
-                    <div class="account-name"><span class="account-order">${idx + 1}</span>. 代字：${Admin.esc(u)}</div>
-                    <div class="account-meta">員工編號：${Admin.esc(employeeText)}｜成績紀錄：${recordCount} 筆</div>
+                <div class="account-summary-line">
+                    <span class="account-name"><span class="account-order">${idx + 1}</span>. 代字：${Admin.esc(u)}</span>
+                    <span class="account-meta-inline">員工編號：${Admin.esc(employeeText)}</span>
+                    <span class="account-meta-inline">成績紀錄：${recordCount} 筆</span>
                 </div>
                 <div class="account-actions">
                     <button class="btn btn-danger btn-sm" onclick="Admin.deleteUser('${safeU}')">刪除帳號</button>
@@ -3989,8 +4030,7 @@ const Admin = {
                     <div id="accountCountText" style="font-size:12px; color:#8b949e; margin-top:4px;">共 ${users.length} 組代字</div>
                 </div>
                 <div class="account-search-box">
-                    <label style="display:block; font-size:12px; color:#8b949e; margin-bottom:5px;">搜尋代字</label>
-                    <input type="text" id="accountSearchInput" class="input-field" style="margin:0" placeholder="輸入代字關鍵字..." oninput="Admin.applyUserFilter()">
+                    <input type="text" id="accountSearchInput" class="input-field" style="margin:0" placeholder="搜尋代字..." oninput="Admin.applyUserFilter()">
                 </div>
                 <div class="batch-actions" style="margin-left:auto; padding-bottom:2px;">
                     <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#8b949e; white-space:nowrap;">
@@ -4508,8 +4548,8 @@ const Admin = {
             <div class="sticky-header">
                 <h3>🔍 測驗成績查詢</h3>
                 <div class="header-actions">
-                    <button class="btn btn-success btn-sm" onclick="Admin.exportScoreRecords()">匯出成績</button>
-                    <button class="btn btn-primary btn-sm" onclick="document.getElementById('legacyScoreImportFile').click()">匯入舊成績</button>
+                    <button class="btn btn-success btn-sm" onclick="Admin.exportScoreRecords()">📤 匯出成績</button>
+                    <button class="btn btn-primary btn-sm" onclick="document.getElementById('legacyScoreImportFile').click()">📥 匯入舊成績</button>
                     <input type="file" id="legacyScoreImportFile" class="hidden" accept=".csv" onchange="Admin.importLegacyScores(event)">
                     <button class="btn btn-answer-export btn-sm" onclick="Admin.exportAnswerDetails()">匯出逐題紀錄</button>
                 </div>
