@@ -30,7 +30,12 @@
         .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-color); }
         .btn-success { background: var(--success-color); color: white; }
         .btn-danger { background: var(--danger-color); color: white; }
-        .btn-warning { background: var(--warning-color); color: #0d1117; }
+         .btn-warning { background: var(--warning-color); color: #0d1117; }
+        .btn-template { background: #6f42c1; color: #ffffff; border: 1px solid rgba(255,255,255,0.12); }
+        .btn-template:hover { filter: brightness(1.08); }
+        .btn-answer-export { background: var(--accent-color); color: #0d1117; border: 1px solid rgba(88,166,255,0.55); }
+        .btn-answer-export:hover { filter: brightness(1.08); }
+        .btn-icon-mono { font-size: 13px; line-height: 1; color: currentColor; }
         .btn-sm { padding: 5px 10px; font-size: 12px; }
         .btn:disabled { opacity: 0.45; cursor: not-allowed; filter: grayscale(0.35); }
         .input-field, .select-field { width: 100%; padding: 10px; margin: 8px 0; background: #0d1117; border: 1px solid var(--border-color); color: white; border-radius: 4px; }
@@ -2952,7 +2957,7 @@ const Admin = {
                     <div class="editor-helper" style="margin-top:6px;">編輯科目、教材、題庫及拖拉科目卡片調整順序後，記得按下儲存變更才會生效。</div>
                 </div>
                 <div class="header-actions">
-                    <button class="btn btn-warning btn-sm" onclick="Admin.downloadTemplate()">📁 下載範本</button>
+                    <button class="btn btn-template btn-sm" onclick="Admin.downloadTemplate()"><span class="btn-icon-mono">⇩</span> 下載範本</button>
                     <button class="btn btn-primary btn-sm" onclick="Admin.addCourse()">➕ 新增科目</button>
                     <button class="btn btn-success btn-sm" onclick="Admin.saveAll(event)">💾 儲存變更</button>
                 </div>
@@ -3790,7 +3795,7 @@ const Admin = {
                 <h3>🔍 測驗成績查詢</h3>
                 <div class="header-actions">
                     <button class="btn btn-success btn-sm" onclick="Admin.exportScoreRecords()">匯出成績</button>
-                    <button class="btn btn-outline btn-sm" onclick="Admin.exportAnswerDetails()">匯出逐題紀錄</button>
+                    <button class="btn btn-answer-export btn-sm" onclick="Admin.exportAnswerDetails()">匯出逐題紀錄</button>
                 </div>
             </div>
             <div class="filter-group">
