@@ -1266,6 +1266,81 @@
 }
 @keyframes scoreSyncSpin { to { transform: rotate(360deg); } }
 
+
+/* V129：管理員密碼遮罩與顯示切換 */
+.admin-password-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 6500;
+    background: rgba(0,0,0,0.62);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.admin-password-modal-overlay.active { display: flex; }
+.admin-password-modal {
+    width: min(420px, 94vw);
+    background: var(--panel-color);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.62);
+    padding: 22px;
+}
+.admin-password-modal h3 {
+    color: var(--accent-color);
+    margin-bottom: 8px;
+}
+.admin-password-modal .admin-password-desc {
+    color: #8b949e;
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 14px;
+}
+.admin-password-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.admin-password-input-wrap .input-field {
+    padding-right: 48px;
+    margin: 0;
+}
+.admin-password-toggle {
+    position: absolute;
+    right: 7px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: #21262d;
+    color: var(--text-color);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+}
+.admin-password-toggle:hover {
+    border-color: rgba(88,166,255,0.7);
+    color: var(--accent-color);
+}
+.admin-password-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+}
+.admin-password-error {
+    min-height: 18px;
+    margin-top: 8px;
+    color: var(--danger-color);
+    font-size: 13px;
+    font-weight: 700;
+}
+
 </style>
 </head>
 <body oncontextmenu="return false;"> 
@@ -1360,7 +1435,25 @@
             </div>
         </div>
 </div>
-    <div id="global-nav-rail" class="nav-tools-rail">
+    
+
+<div id="adminPasswordModal" class="admin-password-modal-overlay" onclick="App.closeAdminPasswordModal(event)">
+    <div class="admin-password-modal" role="dialog" aria-modal="true" aria-labelledby="adminPasswordTitle" onclick="event.stopPropagation()">
+        <h3 id="adminPasswordTitle">管理員登入</h3>
+        <div class="admin-password-desc">請輸入管理密碼。密碼預設以 * 號遮蔽，可點選右側眼睛圖示顯示或隱藏。</div>
+        <label for="adminPasswordInput" style="display:block; font-size:12px; color:#8b949e; margin-bottom:6px;">管理密碼</label>
+        <div class="admin-password-input-wrap">
+            <input type="password" id="adminPasswordInput" class="input-field" placeholder="請輸入管理密碼" autocomplete="current-password" onkeydown="App.handleAdminPasswordKey(event)">
+            <button type="button" id="adminPasswordToggle" class="admin-password-toggle" onclick="App.toggleAdminPasswordVisibility()" aria-label="顯示密碼" title="顯示密碼">👁️</button>
+        </div>
+        <div id="adminPasswordError" class="admin-password-error"></div>
+        <div class="admin-password-actions">
+            <button type="button" class="btn btn-outline" onclick="App.closeAdminPasswordModal()">取消</button>
+            <button type="button" class="btn btn-primary" onclick="App.submitAdminPassword()">登入後台</button>
+        </div>
+    </div>
+</div>
+<div id="global-nav-rail" class="nav-tools-rail">
         <button class="nav-btn-circle" onclick="App.scrollSide(0)">▲</button>
         <button class="nav-btn-circle" onclick="App.scrollSide(1)">▼</button>
     </div>
@@ -1399,7 +1492,7 @@ const APP_BUILD_VERSION = 'V128-supabase-connection-status';
 
 const SUPABASE_URL = (window.ATC_CONFIG && window.ATC_CONFIG.SUPABASE_URL) ? window.ATC_CONFIG.SUPABASE_URL.trim() : "";
 const SUPABASE_ANON_KEY = (window.ATC_CONFIG && window.ATC_CONFIG.SUPABASE_ANON_KEY) ? window.ATC_CONFIG.SUPABASE_ANON_KEY.trim() : "";
-// V128：本版只使用 Supabase。
+// V128：本版只使用 Supabase，不使用 Apps Script / Google Sheets。
 const SHEETS_WEB_APP_URL = "";
 
 const Backend = {
@@ -2446,20 +2539,91 @@ const App = {
         this.refreshHomeUI();
     },
     toAdmin: function() {
-        if (this.isInstructor || prompt("管理密碼") === this.state.adminPw) {
-            this.isInstructor = true;
-            try {
-                localStorage.setItem(this.ADMIN_PERSIST_KEY || 'ATC_ADMIN_PERSIST_LOGIN', '1');
-                localStorage.setItem(this.ADMIN_SESSION_KEY, '1');
-                sessionStorage.setItem(this.ADMIN_SESSION_KEY, '1');
-            } catch (e) {}
-            this.switchAdmin('score');
+        if (this.isInstructor) return this.enterAdminPanel();
+        this.openAdminPasswordModal();
+    },
+    enterAdminPanel: function() {
+        this.isInstructor = true;
+        try {
+            localStorage.setItem(this.ADMIN_PERSIST_KEY || 'ATC_ADMIN_PERSIST_LOGIN', '1');
+            localStorage.setItem(this.ADMIN_SESSION_KEY, '1');
+            sessionStorage.setItem(this.ADMIN_SESSION_KEY, '1');
+        } catch (e) {}
+        this.closeAdminPasswordModal();
+        this.switchAdmin('score');
 
-            setTimeout(() => {
-                if (Admin.refreshSupabaseStatusForAdmin) Admin.refreshSupabaseStatusForAdmin();
-            }, 0);
+        setTimeout(() => {
+            if (Admin.refreshSupabaseStatusForAdmin) Admin.refreshSupabaseStatusForAdmin();
+        }, 0);
+    },
+    openAdminPasswordModal: function() {
+        const modal = document.getElementById('adminPasswordModal');
+        const input = document.getElementById('adminPasswordInput');
+        const error = document.getElementById('adminPasswordError');
+        if (!modal || !input) {
+            const fallback = prompt('管理密碼');
+            if (fallback === this.state.adminPw) return this.enterAdminPanel();
+            return alert('密碼錯誤');
+        }
+        if (error) error.innerText = '';
+        input.type = 'password';
+        input.value = '';
+        const toggle = document.getElementById('adminPasswordToggle');
+        if (toggle) {
+            toggle.innerText = '👁️';
+            toggle.setAttribute('aria-label', '顯示密碼');
+            toggle.setAttribute('title', '顯示密碼');
+        }
+        modal.classList.add('active');
+        setTimeout(() => input.focus(), 0);
+    },
+    closeAdminPasswordModal: function(event) {
+        if (event && event.target && event.target.id !== 'adminPasswordModal') return;
+        const modal = document.getElementById('adminPasswordModal');
+        const input = document.getElementById('adminPasswordInput');
+        const error = document.getElementById('adminPasswordError');
+        if (modal) modal.classList.remove('active');
+        if (input) {
+            input.value = '';
+            input.type = 'password';
+        }
+        if (error) error.innerText = '';
+    },
+    toggleAdminPasswordVisibility: function() {
+        const input = document.getElementById('adminPasswordInput');
+        const toggle = document.getElementById('adminPasswordToggle');
+        if (!input) return;
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        if (toggle) {
+            toggle.innerText = show ? '🙈' : '👁️';
+            toggle.setAttribute('aria-label', show ? '隱藏密碼' : '顯示密碼');
+            toggle.setAttribute('title', show ? '隱藏密碼' : '顯示密碼');
+        }
+        input.focus();
+    },
+    handleAdminPasswordKey: function(e) {
+        if (!e) return;
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            this.submitAdminPassword();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            this.closeAdminPasswordModal();
+        }
+    },
+    submitAdminPassword: function() {
+        const input = document.getElementById('adminPasswordInput');
+        const error = document.getElementById('adminPasswordError');
+        const value = input ? input.value : '';
+        if (value === this.state.adminPw) {
+            this.enterAdminPanel();
         } else {
-            alert("拒絕");
+            if (error) error.innerText = '密碼錯誤，請重新輸入。';
+            if (input) {
+                input.select();
+                input.focus();
+            }
         }
     },
     logoutInstructor: function() {
@@ -3003,7 +3167,7 @@ const Admin = {
         Admin.sync();
 
         if (!App.cloudReady && Backend.enabled()) {
-            alert('尚未成功連線 Supabase。為避免本機舊資料覆蓋資料庫，請重新整理並確認 Supabase 連線正常後再儲存。');
+            alert('尚未成功讀取雲端資料。為避免本機舊資料覆蓋雲端，請重新整理並確認 Supabase 連線正常後再儲存。');
             Backend.setStatus('尚未成功連線 Supabase，禁止儲存以避免覆蓋資料庫', 'var(--danger-color)');
             return;
         }
@@ -3179,7 +3343,7 @@ const Admin = {
                 Admin.renderUsers();
                 alert('✅ 已刪除帳號並寫入 Supabase');
             } else {
-                alert('⚠️ 帳號刪除寫入 Supabase 失敗，資料庫未變更');
+                alert('⚠️ 帳號刪除寫入 Supabase 失敗，雲端資料未變更');
             }
         }
     },
@@ -3218,7 +3382,7 @@ const Admin = {
             alert('✅ 批次解鎖資料已寫入 Supabase完成');
         } else {
             Backend.setStatus('⚠️ 批次解鎖寫入 Supabase 失敗，資料庫未變更', 'var(--danger-color)');
-            alert('⚠️ 批次解鎖寫入 Supabase 失敗，資料庫未變更。請確認 Supabase 連線與資料表權限。');
+            alert('⚠️ 批次解鎖同步失敗，雲端資料未變更。請確認 Web App 已重新部署，並已執行 ?action=setup。');
         }
     },
     unlockStudentQuiz: async function(u, courseId) {
@@ -3235,8 +3399,8 @@ const Admin = {
             App.updateLoginStatus();
             alert('✅ 解鎖資料已寫入 Supabase完成');
         } else {
-            Backend.setStatus('⚠️ 解鎖資料寫入 Supabase 失敗，資料庫未變更', 'var(--danger-color)');
-            alert('⚠️ 解鎖資料寫入 Supabase 失敗，資料庫未變更。請確認 Supabase 連線與資料表權限。');
+            Backend.setStatus('⚠️ 解鎖資料寫入 Supabase 失敗，雲端未變更', 'var(--danger-color)');
+            alert('⚠️ 解鎖資料寫入 Supabase 失敗，雲端資料未變更。請確認 Web App 已重新部署，並已執行 ?action=setup。');
         }
     },
     
@@ -3246,7 +3410,7 @@ const Admin = {
         if (!r) return alert('找不到此筆測驗紀錄。');
         if (!confirm(`確定刪除「${r.u}」的「${r.c}」測驗紀錄？`)) return;
         const recordId = String(r.recordId || r.id || '');
-        if (!recordId) return alert('此筆紀錄缺少 recordId，無法安全刪除。');
+        if (!recordId) return alert('此筆紀錄缺少 recordId，無法安全同步刪除。');
 
         const ok = await Admin.withButtonStatus(async () => {
             const result = await Backend.deleteScoreRecords([recordId]);
@@ -3265,9 +3429,9 @@ const Admin = {
         if (ok) {
             Admin.applyScoreFilter();
             App.updateLoginStatus();
-            alert('✅ 已刪除測驗紀錄並寫入 Supabase');
+            alert('✅ 已刪除測驗紀錄並同步完成');
         } else {
-            alert('⚠️ 刪除測驗紀錄寫入 Supabase 失敗，資料庫資料未刪除。');
+            alert('⚠️ 刪除測驗紀錄寫入 Supabase 失敗，雲端資料未刪除。');
         }
     },
     
@@ -3282,7 +3446,7 @@ const Admin = {
         if (!uniqueIndices.length) return alert('請先勾選要刪除的測驗紀錄。');
         if (!confirm(`確定批次刪除 ${uniqueIndices.length} 筆測驗紀錄？`)) return;
         const recordIds = uniqueIndices.map(idx => App.state.records[idx]).filter(Boolean).map(r => String(r.recordId || r.id || '')).filter(Boolean);
-        if (!recordIds.length) return alert('所選紀錄缺少 recordId，無法安全刪除。');
+        if (!recordIds.length) return alert('所選紀錄缺少 recordId，無法安全同步刪除。');
 
         const ok = await Admin.withButtonStatus(async () => {
             const result = await Backend.deleteScoreRecords(recordIds);
@@ -3301,9 +3465,9 @@ const Admin = {
         if (ok) {
             Admin.applyScoreFilter();
             App.updateLoginStatus();
-            alert('✅ 已批次刪除測驗紀錄並寫入 Supabase');
+            alert('✅ 已批次刪除測驗紀錄並同步完成');
         } else {
-            alert('⚠️ 批次刪除測驗紀錄寫入 Supabase 失敗，資料庫資料未刪除。');
+            alert('⚠️ 批次刪除測驗紀錄同步失敗，雲端資料未刪除。');
         }
     },
     
@@ -3512,7 +3676,7 @@ const Quiz = {
             account.employeeId = String(App.employeeId || '');
             account.pw = '';
             App.state.users[App.user] = account;
-            const ok = await App.syncUsersOnly('員工編號已寫入 Supabase', '員工編號寫入 Supabase 失敗，資料庫未變更。請確認 Supabase 連線與權限設定。');
+            const ok = await App.syncUsersOnly('員工編號已同步完成', '員工編號同步失敗，雲端資料未變更。請確認 Web App 已重新部署。');
             if (!ok && Backend.enabled()) { this.setScoreSyncOverlay(false); resetStartButton(); return; }
         } else {
             this.setScoreSyncOverlay(true, '正在載入測驗題目，完成後會自動進入測驗。', '測驗準備中', '請稍候，不要重複點擊開始考核。');
@@ -3564,8 +3728,8 @@ const Quiz = {
         if (!App.quizInProgress || App.isInstructor || !App.user || !App.activeCourse) return;
         if (App.isQuizLocked(App.user, App.activeCourse.id)) return;
 
-        // V125.2：若使用者已按「確認送出」且正在等待 Supabase 寫入，
-        // 不再記 0 分；改保留本次實際成績為待寫入，避免關閉頁面造成錯誤零分。
+        // V125.2：若使用者已按「確認送出」且正在等待雲端同步，
+        // 不再記 0 分；改保留本次實際成績為待同步，避免關閉頁面造成錯誤零分。
         if (this.submitInProgress && this.pendingSubmitRecord) {
             const record = this.pendingSubmitRecord;
             if (!App.state.records.some(r => String(r.recordId || r.id || '') === String(record.recordId))) {
@@ -3852,7 +4016,7 @@ const Quiz = {
                 if (!(syncResult && syncResult.ok)) {
                     const errText = syncResult && syncResult.error ? `\n${syncResult.error}` : '';
                     this.setSubmitUi(false, '成績尚未成功儲存，請確認網路後再按一次「提交考核答案」。');
-                    alert('成績尚未成功寫入 Supabase，請勿關閉頁面。請確認網路或 Supabase 連線後，再重新送出。' + errText);
+                    alert('成績尚未成功儲存，請勿關閉頁面。請確認網路或 Web App 部署後，再重新送出。' + errText);
                     return;
                 }
 
