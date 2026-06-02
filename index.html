@@ -297,15 +297,6 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
-        .q-options-hint {
-            color: #8b949e;
-            font-size: 12px;
-            margin: 6px 0 0 42px;
-            line-height: 1.5;
-        }
-        .q-row:not(.q-options-collapsed) .q-options-hint {
-            display: none;
-        }
         .q-row-header {
             display: flex;
             justify-content: space-between;
@@ -3089,8 +3080,8 @@ const Admin = {
         const target = Admin.getQuestionScrollTarget();
         const isPage = target === document.documentElement || target === document.body || target === document.scrollingElement;
         const rect = isPage ? { top: 0, bottom: window.innerHeight } : target.getBoundingClientRect();
-        const threshold = 190;
-        const maxSpeed = 132;
+        const threshold = 150;
+        const maxSpeed = 78;
         let speed = 0;
 
         if (point.clientY < rect.top + threshold) {
@@ -3208,7 +3199,7 @@ const Admin = {
                         <div class="question-toolbar">
                             <div>
                                 <h4>題庫內容</h4>
-                                <div class="editor-helper">可手動新增題目，或用 CSV 匯入／匯出題庫；選項預設收合以提升長題庫拖曳流暢度；按「選項」可展開編輯。只有按住題號旁的［☰］才會拖曳排序。</div>
+                                <div class="editor-helper">可手動新增題目，或用 CSV 匯入／匯出題庫；按「選項」可展開編輯。只有按住題號旁的［☰］才會拖曳排序。</div>
                             </div>
                             <div class="question-actions">
                                 <button class="btn btn-outline btn-sm" onclick="Admin.exportCourseQuestions(${ci})">📤 匯出題庫</button>
@@ -3230,7 +3221,6 @@ const Admin = {
                                     </div>
                                 </div>
                                 <input type="text" class="input-field q-t" value="${Admin.esc(q.q)}" placeholder="請輸入題目內容">
-                                <div class="q-options-hint">選項已收合，拖曳排序會更順暢；需要修改答案或選項時請按右上方「選項」。</div>
                                 <div class="q-options-grid" hidden style="display:none !important;">
                                     ${q.o.map((opt, oi) => `<div class="option-row"><span class="option-index">${oi+1}</span><label class="answer-radio-wrap" title="設為答案"><input type="radio" name="r-${c.id}-${qi}" value="${oi}" ${q.a==oi?'checked':''}> 答案</label><input type="text" class="input-field q-o" value="${Admin.esc(opt)}"></div>`).join('')}
                                 </div>
@@ -3250,8 +3240,8 @@ const Admin = {
                 direction: 'vertical',
                 scroll: true,
                 bubbleScroll: true,
-                scrollSensitivity: 190,
-                scrollSpeed: 96,
+                scrollSensitivity: 150,
+                scrollSpeed: 58,
                 forceFallback: true,
                 fallbackOnBody: true,
                 fallbackTolerance: 4,
