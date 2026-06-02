@@ -106,30 +106,13 @@
             box-shadow: 0 0 0 3px rgba(88,166,255,0.12);
         }
         .material-list-editor { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
-        .material-editor-top { display: grid; grid-template-columns: minmax(180px, 1fr) auto auto; gap: 8px; align-items: center; }
-        .material-editor-select {
-            width: 100%;
-            height: 36px;
-            margin: 0;
-            padding: 7px 10px;
-            background: #0d1117;
-            border: 1px solid rgba(88,166,255,0.35);
-            color: var(--text-color);
-            border-radius: 999px;
-            font-size: 13px;
-            outline: none;
-        }
-        .material-editor-select:focus {
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 3px rgba(88,166,255,0.12);
-        }
         .material-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 76px; gap: 8px; align-items: center; }
         .material-row.is-hidden { display: none !important; }
-        .material-row .input-field { margin: 0; }
+        .material-row .input-field,
+        .material-row .select-field { margin: 0; }
         .material-row .btn { min-height: 34px; }
         .material-actions-row { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 2px; }
         @media (max-width: 760px) {
-            .material-editor-top { grid-template-columns: 1fr; }
             .material-row { grid-template-columns: 1fr; }
         }
 
@@ -3136,28 +3119,21 @@ const Admin = {
         const options = mats.map((m, mi) => `<option value="${mi}" ${mi === active ? 'selected' : ''}>${Admin.esc(m.title || `教材 ${mi + 1}`)}</option>`).join('');
         const rows = mats.map((m, mi) => `
             <div class="material-row ${mi === active ? '' : 'is-hidden'}" data-material-index="${mi}" data-material-id="${Admin.esc(m.id || `${course && course.id || 'course'}_mat_${mi + 1}`)}">
-                <input type="text" class="input-field m-title" value="${Admin.esc(m.title || `教材 ${mi + 1}`)}" placeholder="教材名稱" oninput="Admin.refreshMaterialOptionLabel(this)">
+                <select class="select-field material-editor-select" onchange="Admin.selectEditorMaterial(this)" aria-label="選擇要編輯的教材">${options}</select>
                 <input type="text" class="input-field m-url" value="${Admin.esc(m.url || '')}" placeholder="可貼簡報、YouTube、Google Drive、mp4 或 iframe 嵌入碼">
-                <button class="btn btn-danger btn-sm" onclick="Admin.delMaterial(${ci}, ${mi})">移除</button>
+                <button class="btn btn-danger btn-sm" onclick="Admin.delSelectedMaterial(${ci}, this)">移除</button>
+                <input type="hidden" class="m-title" value="${Admin.esc(m.title || `教材 ${mi + 1}`)}">
             </div>`).join('');
         return `
             <div class="material-list-editor" data-course-index="${ci}">
-                <div class="material-editor-top">
-                    <select class="material-editor-select" onchange="Admin.selectEditorMaterial(this)" aria-label="選擇要編輯的教材">${options}</select>
-                    <button class="btn btn-primary btn-sm" onclick="Admin.addMaterial(${ci})">➕ 新增教材</button>
-                    <button class="btn btn-danger btn-sm" onclick="Admin.delSelectedMaterial(${ci}, this)">移除目前教材</button>
-                </div>
                 ${rows}
+                <div class="material-actions-row">
+                    <button class="btn btn-primary btn-sm" onclick="Admin.addMaterial(${ci})">➕ 新增教材</button>
+                </div>
             </div>`;
     },
     refreshMaterialOptionLabel: function(input) {
-        const editor = input ? input.closest('.material-list-editor') : null;
-        const row = input ? input.closest('.material-row') : null;
-        if (!editor || !row) return;
-        const select = editor.querySelector('.material-editor-select');
-        const idx = Number(row.dataset.materialIndex || 0);
-        const option = select ? select.querySelector(`option[value="${idx}"]`) : null;
-        if (option) option.textContent = (input.value || '').trim() || `教材 ${idx + 1}`;
+        return;
     },
     selectEditorMaterial: function(select) {
         const editor = select ? select.closest('.material-list-editor') : null;
@@ -3166,11 +3142,12 @@ const Admin = {
         editor.querySelectorAll('.material-row').forEach(row => {
             row.classList.toggle('is-hidden', String(row.dataset.materialIndex || '0') !== target);
         });
+        editor.querySelectorAll('.material-editor-select').forEach(sel => { sel.value = target; });
     },
     delSelectedMaterial: function(ci, btn) {
         const editor = btn ? btn.closest('.material-list-editor') : null;
-        const select = editor ? editor.querySelector('.material-editor-select') : null;
-        const mi = select ? parseInt(select.value, 10) : 0;
+        const row = btn ? btn.closest('.material-row') : null;
+        const mi = row ? parseInt(row.dataset.materialIndex, 10) : 0;
         this.delMaterial(ci, Number.isFinite(mi) ? mi : 0);
     },
 
@@ -3531,7 +3508,7 @@ const Admin = {
                 const materialRows = Array.from(item.querySelectorAll('.material-row'));
                 target.materials = materialRows.map((row, mi) => ({
                     id: row.dataset.materialId || `${target.id || 'course'}_mat_${mi + 1}_${Date.now()}`,
-                    title: (row.querySelector('.m-title') ? row.querySelector('.m-title').value.trim() : '') || `教材 ${mi + 1}`,
+                    title: (row.querySelector('.m-title') ? row.querySelector('.m-title').value.trim() : '') || (row.querySelector('.material-editor-select option:checked') ? row.querySelector('.material-editor-select option:checked').textContent.trim() : '') || `教材 ${mi + 1}`,
                     url: row.querySelector('.m-url') ? row.querySelector('.m-url').value.trim() : '',
                     type: 'auto'
                 })).filter(m => keepBlankMaterials || m.url || m.title);
@@ -3555,7 +3532,7 @@ const Admin = {
         course.materials.push({ id: `${course.id || Date.now()}_mat_${Date.now()}`, title: `教材 ${course.materials.length + 1}`, url: '', type: 'auto' });
         App.saveLocalOnly();
         Admin.renderEditor();
-        Backend.setStatus('已新增教材欄位，請貼上網址後按「儲存變更」寫入 Supabase', 'var(--warning-color)');
+        Backend.setStatus('已新增教材，請貼上網址後按「儲存變更」寫入 Supabase', 'var(--warning-color)');
     },
     delMaterial: function(ci, mi) {
         Admin.sync(true);
