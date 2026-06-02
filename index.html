@@ -1203,14 +1203,76 @@
     user-select: auto;
     -webkit-user-select: auto;
 }
-.q-row .handle {
+.q-row .handle,
+.q-row .q-sort-handle {
     cursor: grab !important;
     user-select: none;
     -webkit-user-select: none;
     touch-action: none;
 }
-.q-row .handle:active {
+.q-row .handle:active,
+.q-row .q-sort-handle:active {
     cursor: grabbing !important;
+}
+.q-sort-handle {
+    width: 34px;
+    height: 30px;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: #21262d;
+    color: var(--accent-color);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    line-height: 1;
+}
+.q-row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.q-row-actions .btn[disabled] {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+@media (max-width: 640px) {
+    .q-row-header { align-items: flex-start; flex-direction: column; }
+    .q-row-actions { width: 100%; justify-content: flex-start; }
+}
+.question-toolbar,
+.question-toolbar * {
+    user-select: none;
+    -webkit-user-select: none;
+}
+.question-toolbar input,
+.question-toolbar button {
+    user-select: auto;
+    -webkit-user-select: auto;
+}
+.q-row-ghost {
+    opacity: 0.38;
+    border: 1px dashed var(--accent-color);
+    background: #0d1117;
+}
+.q-row-chosen {
+    box-shadow: 0 0 0 2px rgba(88,166,255,0.28);
+}
+.q-row-fallback {
+    opacity: 0.96 !important;
+    background: #161b22 !important;
+    border: 1px solid rgba(88,166,255,0.65) !important;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.55) !important;
+    pointer-events: none !important;
+    cursor: grabbing !important;
+}
+body.question-sort-active .question-toolbar,
+body.question-sort-active .editor-helper {
+    user-select: none !important;
+    -webkit-user-select: none !important;
 }
 
 
@@ -1440,6 +1502,7 @@
 <div id="adminPasswordModal" class="admin-password-modal-overlay" onclick="App.closeAdminPasswordModal(event)">
     <div class="admin-password-modal" role="dialog" aria-modal="true" aria-labelledby="adminPasswordTitle" onclick="event.stopPropagation()">
         <h3 id="adminPasswordTitle">管理員登入</h3>
+        <div class="admin-password-desc">請輸入管理密碼。密碼預設以 * 號遮蔽，可點選右側眼睛圖示顯示或隱藏。</div>
         <label for="adminPasswordInput" style="display:block; font-size:12px; color:#8b949e; margin-bottom:6px;">管理密碼</label>
         <div class="admin-password-input-wrap">
             <input type="password" id="adminPasswordInput" class="input-field" placeholder="請輸入管理密碼" autocomplete="current-password" onkeydown="App.handleAdminPasswordKey(event)">
@@ -1487,7 +1550,7 @@ const PASS_SCORE = 80;
 // ================= Supabase 後端設定 =================
 // Supabase URL 與 anon key 請設定在同層的 config.js。
 // 若 config.js 未設定或未載入，系統會維持本機 localStorage 模式，方便測試。
-const APP_BUILD_VERSION = 'V128-supabase-connection-status';
+const APP_BUILD_VERSION = 'V130-question-sort-fix';
 
 const SUPABASE_URL = (window.ATC_CONFIG && window.ATC_CONFIG.SUPABASE_URL) ? window.ATC_CONFIG.SUPABASE_URL.trim() : "";
 const SUPABASE_ANON_KEY = (window.ATC_CONFIG && window.ATC_CONFIG.SUPABASE_ANON_KEY) ? window.ATC_CONFIG.SUPABASE_ANON_KEY.trim() : "";
@@ -2833,7 +2896,7 @@ const Admin = {
                         <div class="question-toolbar">
                             <div>
                                 <h4>題庫內容</h4>
-                                <div class="editor-helper">可手動新增題目，或用 CSV 匯入／匯出題庫；拖曳 ［☰］ 可調整題目順序。</div>
+                                <div class="editor-helper">可手動新增題目，或用 CSV 匯入／匯出題庫；只有按住題號旁的 ［☰］ 才會拖曳排序，也可用「上移／下移」調整題目順序。</div>
                             </div>
                             <div class="question-actions">
                                 <button class="btn btn-outline btn-sm" onclick="Admin.exportCourseQuestions(${ci})">📤 匯出題庫</button>
@@ -2846,8 +2909,12 @@ const Admin = {
                         <div class="ql-container" id="ql-${ci}">${c.questions.map((q, qi) => `
                             <div class="q-row">
                                 <div class="q-row-header">
-                                    <span class="q-title-wrap"><span class="handle">☰</span> <strong class="handle-text">Q${qi+1}</strong></span>
-                                    <button class="btn btn-danger btn-sm" onclick="Admin.delQ(${ci}, ${qi})">移除</button>
+                                    <span class="q-title-wrap"><button type="button" class="q-sort-handle handle" title="拖曳調整題目順序" aria-label="拖曳調整題目順序">☰</button> <strong class="handle-text">Q${qi+1}</strong></span>
+                                    <div class="q-row-actions">
+                                        <button class="btn btn-outline btn-sm" ${qi===0?'disabled':''} onclick="Admin.moveQ(${ci}, ${qi}, -1)">↑ 上移</button>
+                                        <button class="btn btn-outline btn-sm" ${qi===c.questions.length-1?'disabled':''} onclick="Admin.moveQ(${ci}, ${qi}, 1)">↓ 下移</button>
+                                        <button class="btn btn-danger btn-sm" onclick="Admin.delQ(${ci}, ${qi})">移除</button>
+                                    </div>
                                 </div>
                                 <input type="text" class="input-field q-t" value="${Admin.esc(q.q)}" placeholder="請輸入題目內容">
                                 <div class="q-options-grid">
@@ -2861,11 +2928,40 @@ const Admin = {
 
         App.state.courses.forEach((c, ci) => { 
             new Sortable(document.getElementById(`ql-${ci}`), {
-                handle: '.handle',
-                filter: 'input, textarea, select, option, button, label, .input-field',
+                draggable: '.q-row',
+                handle: '.q-sort-handle',
+                filter: 'input, textarea, select, option, button:not(.q-sort-handle), label, .input-field',
                 preventOnFilter: false,
-                animation: 150,
-                onEnd: function() { Admin.reindexQuestions(ci); Admin.sync(); }
+                animation: 180,
+                direction: 'vertical',
+                forceFallback: true,
+                fallbackOnBody: true,
+                fallbackTolerance: 4,
+                swapThreshold: 0.62,
+                invertedSwapThreshold: 0.35,
+                emptyInsertThreshold: 12,
+                ghostClass: 'q-row-ghost',
+                chosenClass: 'q-row-chosen',
+                fallbackClass: 'q-row-fallback',
+                onChoose: function() {
+                    document.body.classList.add('question-sort-active');
+                },
+                onUnchoose: function() {
+                    document.body.classList.remove('question-sort-active');
+                },
+                onMove: function(evt) {
+                    return !!(evt && evt.related && evt.related.classList && evt.related.classList.contains('q-row'));
+                },
+                onEnd: function(evt) {
+                    document.body.classList.remove('question-sort-active');
+                    Admin.reindexQuestions(ci);
+                    Admin.sync();
+                    App.saveLocalOnly();
+                    if (evt && typeof evt.newIndex === 'number') {
+                        App.pendingScrollQuestion = { courseIndex: ci, questionIndex: evt.newIndex };
+                    }
+                    Backend.setStatus('題目順序已更新，請按「儲存變更」寫入 Supabase', 'var(--warning-color)');
+                }
             }); 
         });
     
@@ -2940,7 +3036,22 @@ const Admin = {
         App.pendingScrollQuestion = { courseIndex: ci, questionIndex: course.questions.length - 1 };
         Admin.renderEditor();
     },
-    delQ: function(ci, qi) { Admin.sync(); App.state.courses[ci].questions.splice(qi, 1); Admin.renderEditor(); },
+    delQ: function(ci, qi) { Admin.sync(); App.state.courses[ci].questions.splice(qi, 1); App.saveLocalOnly(); Admin.renderEditor(); },
+    moveQ: function(ci, qi, direction) {
+        Admin.sync();
+        const course = App.state.courses[ci];
+        if (!course || !Array.isArray(course.questions)) return;
+        const from = Number(qi);
+        const to = from + Number(direction);
+        if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 0 || from >= course.questions.length || to >= course.questions.length) return;
+        const [moved] = course.questions.splice(from, 1);
+        course.questions.splice(to, 0, moved);
+        App.lastOpenedCourseId = course.id;
+        App.pendingScrollQuestion = { courseIndex: ci, questionIndex: to };
+        App.saveLocalOnly();
+        Admin.renderEditor();
+        Backend.setStatus('題目順序已更新，請按「儲存變更」寫入 Supabase', 'var(--warning-color)');
+    },
     delAllQ: async function(ci) {
         Admin.sync();
         const course = App.state.courses[ci];
