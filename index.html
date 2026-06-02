@@ -111,6 +111,7 @@
         .material-row .input-field,
         .material-row .select-field { margin: 0; }
         .material-row .btn { min-height: 34px; }
+        .material-row .material-action-btn { width: 92px; padding-left: 8px; padding-right: 8px; }
         .material-actions-row { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 2px; }
         @media (max-width: 760px) {
             .material-row { grid-template-columns: 1fr; }
@@ -1753,7 +1754,6 @@ body.question-sort-active .editor-helper {
 <div id="adminPasswordModal" class="admin-password-modal-overlay" onclick="App.closeAdminPasswordModal(event)">
     <div class="admin-password-modal" role="dialog" aria-modal="true" aria-labelledby="adminPasswordTitle" onclick="event.stopPropagation()">
         <h3 id="adminPasswordTitle">管理員登入</h3>
-        <div class="admin-password-desc">請輸入管理密碼。密碼預設以 * 號遮蔽，可點選右側簡約符號切換顯示或隱藏。</div>
         <label for="adminPasswordInput" style="display:block; font-size:12px; color:#8b949e; margin-bottom:6px;">管理密碼</label>
         <div class="admin-password-input-wrap">
             <input type="password" id="adminPasswordInput" class="input-field" placeholder="請輸入管理密碼" autocomplete="current-password" onkeydown="App.handleAdminPasswordKey(event)">
@@ -3124,8 +3124,8 @@ const Admin = {
             <div class="material-row ${mi === active ? '' : 'is-hidden'}" data-material-index="${mi}" data-material-id="${Admin.esc(m.id || `${course && course.id || 'course'}_mat_${mi + 1}`)}">
                 <select class="select-field material-editor-select" onchange="Admin.selectEditorMaterial(this)" aria-label="選擇要編輯的教材">${options}</select>
                 <input type="text" class="input-field m-url" value="${Admin.esc(m.url || '')}" placeholder="可貼簡報、YouTube、Google Drive、mp4 或 iframe 嵌入碼">
-                <button class="btn btn-danger btn-sm" onclick="Admin.delSelectedMaterial(${ci}, this)">移除教材</button>
-                <button class="btn btn-primary btn-sm" onclick="Admin.addMaterial(${ci})">新增教材</button>
+                <button class="btn btn-danger btn-sm material-action-btn" onclick="Admin.delSelectedMaterial(${ci}, this)">移除教材</button>
+                <button class="btn btn-primary btn-sm material-action-btn" onclick="Admin.addMaterial(${ci})">新增教材</button>
                 <input type="hidden" class="m-title" value="${Admin.esc(m.title || `教材 ${mi + 1}`)}">
             </div>`).join('');
         return `
@@ -3392,7 +3392,7 @@ const Admin = {
                                 <button class="btn btn-question-export btn-sm" onclick="Admin.exportCourseQuestions(${ci})">📤 匯出題庫</button>
                                 <button class="btn btn-question-import btn-sm" onclick="document.getElementById('f-csv-${ci}').click()">📥 匯入題庫</button>
                                 <input type="file" id="f-csv-${ci}" class="hidden" accept=".csv" onchange="Admin.impCSV(event, ${ci})">
-                                <button class="btn btn-primary btn-sm" onclick="Admin.addQ(${ci})">➕ 手動加題</button>
+                                <button class="btn btn-primary btn-sm" onclick="Admin.addQ(${ci})">手動加題</button>
                                 <button class="btn btn-danger btn-sm" onclick="Admin.delAllQ(${ci})">刪除所有題目</button>
                             </div>
                         </div>
