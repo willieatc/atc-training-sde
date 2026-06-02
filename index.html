@@ -106,12 +106,12 @@
             box-shadow: 0 0 0 3px rgba(88,166,255,0.12);
         }
         .material-list-editor { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
-        .material-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 72px 92px; gap: 8px; align-items: center; }
+        .material-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 86px 86px; gap: 8px; align-items: center; }
         .material-row.is-hidden { display: none !important; }
         .material-row .input-field,
         .material-row .select-field { margin: 0; }
         .material-row .btn { min-height: 34px; }
-        .material-row .material-action-btn { width: 92px; padding-left: 8px; padding-right: 8px; }
+        .material-row .material-action-btn { width: 86px; min-width: 86px; padding-left: 6px; padding-right: 6px; font-size: 12px; white-space: nowrap; }
         .material-actions-row { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 2px; }
         @media (max-width: 760px) {
             .material-row { grid-template-columns: 1fr; }
@@ -1655,7 +1655,19 @@ body.question-sort-active .editor-helper {
     -webkit-user-select: none;
 }
 
-</style>
+
+        /* v154：降低按鈕彩度，整體更沉穩 */
+        .btn-primary { background: #4f8edc; color: #0d1117; }
+        .btn-success { background: #3f9f58; color: white; }
+        .btn-danger { background: #d15b55; color: white; }
+        .btn-warning { background: #d39a3a; color: #0d1117; }
+        .btn-question-export { background: #3f9f58 !important; color: white !important; border-color: rgba(63,159,88,0.35) !important; }
+        .btn-question-import { background: #4f8edc !important; color: #0d1117 !important; border-color: rgba(79,142,220,0.35) !important; }
+        .btn-template { background: #7a66c2 !important; color: white !important; border-color: rgba(122,102,194,0.38) !important; }
+        .btn-detail-export { background: #4f8edc !important; color: #0d1117 !important; border-color: rgba(79,142,220,0.35) !important; }
+        .btn:hover { filter: brightness(1.06); }
+
+    </style>
 </head>
 <body oncontextmenu="return false;"> 
 
