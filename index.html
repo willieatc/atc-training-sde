@@ -1714,6 +1714,18 @@ body.question-sort-active .editor-helper {
             letter-spacing: 0.02em;
         }
 
+    
+        /* v158：測驗成績篩選區緊湊化 */
+        .score-filter-compact {
+            padding: 10px 12px;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .score-filter-compact .input-field,
+        .score-filter-compact .select-field {
+            min-height: 36px;
+        }
+
     </style>
 </head>
 <body oncontextmenu="return false;"> 
@@ -4561,13 +4573,11 @@ const Admin = {
                     <button class="btn btn-answer-export btn-sm" onclick="Admin.exportAnswerDetails()">匯出逐題紀錄</button>
                 </div>
             </div>
-            <div class="filter-group">
+            <div class="filter-group score-filter-compact">
                 <div class="filter-item">
-                    <label>代字／員工編號搜尋</label>
-                    <input type="text" id="searchUser" class="input-field" style="margin:0" placeholder="輸入代字或員工編號關鍵字..." oninput="Admin.applyScoreFilter()">
+                    <input type="text" id="searchUser" class="input-field" style="margin:0" placeholder="搜尋代字／員工編號..." oninput="Admin.applyScoreFilter()">
                 </div>
                 <div class="filter-item">
-                    <label>科目類別篩選</label>
                     <select id="searchCourse" class="select-field" style="margin:0" onchange="Admin.applyScoreFilter()">
                         <option value="ALL">所有科目</option>
                         ${App.state.courses.map(c => `<option value="${c.title}">${c.title}</option>`).join('')}
