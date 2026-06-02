@@ -106,7 +106,7 @@
             box-shadow: 0 0 0 3px rgba(88,166,255,0.12);
         }
         .material-list-editor { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
-        .material-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 76px; gap: 8px; align-items: center; }
+        .material-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 72px 92px; gap: 8px; align-items: center; }
         .material-row.is-hidden { display: none !important; }
         .material-row .input-field,
         .material-row .select-field { margin: 0; }
@@ -789,9 +789,12 @@
         }
         .course-compact-row {
             display: grid;
-            grid-template-columns: minmax(190px, 1fr) 118px minmax(280px, 1.45fr) auto;
+            grid-template-columns: minmax(190px, 1fr) 118px;
             gap: 10px;
             align-items: end;
+        }
+        .course-compact-row .material-field {
+            grid-column: 1 / -1;
         }
         .course-compact-row label {
             display: block;
@@ -3121,15 +3124,13 @@ const Admin = {
             <div class="material-row ${mi === active ? '' : 'is-hidden'}" data-material-index="${mi}" data-material-id="${Admin.esc(m.id || `${course && course.id || 'course'}_mat_${mi + 1}`)}">
                 <select class="select-field material-editor-select" onchange="Admin.selectEditorMaterial(this)" aria-label="選擇要編輯的教材">${options}</select>
                 <input type="text" class="input-field m-url" value="${Admin.esc(m.url || '')}" placeholder="可貼簡報、YouTube、Google Drive、mp4 或 iframe 嵌入碼">
-                <button class="btn btn-danger btn-sm" onclick="Admin.delSelectedMaterial(${ci}, this)">移除</button>
+                <button class="btn btn-danger btn-sm" onclick="Admin.delSelectedMaterial(${ci}, this)">移除教材</button>
+                <button class="btn btn-primary btn-sm" onclick="Admin.addMaterial(${ci})">新增教材</button>
                 <input type="hidden" class="m-title" value="${Admin.esc(m.title || `教材 ${mi + 1}`)}">
             </div>`).join('');
         return `
             <div class="material-list-editor" data-course-index="${ci}">
                 ${rows}
-                <div class="material-actions-row">
-                    <button class="btn btn-primary btn-sm" onclick="Admin.addMaterial(${ci})">➕ 新增教材</button>
-                </div>
             </div>`;
     },
     refreshMaterialOptionLabel: function(input) {
@@ -3145,7 +3146,6 @@ const Admin = {
         editor.querySelectorAll('.material-editor-select').forEach(sel => { sel.value = target; });
     },
     delSelectedMaterial: function(ci, btn) {
-        const editor = btn ? btn.closest('.material-list-editor') : null;
         const row = btn ? btn.closest('.material-row') : null;
         const mi = row ? parseInt(row.dataset.materialIndex, 10) : 0;
         this.delMaterial(ci, Number.isFinite(mi) ? mi : 0);
@@ -3378,7 +3378,7 @@ const Admin = {
                                 <input type="number" min="0" max="100" class="input-field c-pass-score" value="${Number.isFinite(Number(c.passScore)) ? Number(c.passScore) : 80}" placeholder="及格分數">
                             </div>
                             <div class="material-field">
-                                <label>教材清單</label>
+                                <label>教材清單／教材網址</label>
                                 ${Admin.renderMaterialRows(c, ci)}
                             </div>
                         </div>
