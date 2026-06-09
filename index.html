@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- ATC_V001_HIDE_QUESTION_TYPE_HINTS -->
 <!-- ATC_V001_ACCOUNT_BATCH_DELETE_SCORE_TOOLBAR_SWAP -->
 <!-- ATC_V001_SCORE_TABLE_COMPACT -->
 <!-- ATC_V001_NUMBER_INPUT_NO_SPINNER -->
@@ -2157,6 +2158,17 @@ body.question-sort-active .editor-helper {
             }
         }
 
+    
+        /* V001 patch：不顯示簡答題／是非題提示文字 */
+        .q-short-note,
+        .q-truefalse-note {
+            display: none !important;
+        }
+        .q-row.q-type-short .q-short-note,
+        .q-row.q-type-truefalse .q-truefalse-note {
+            display: none !important;
+        }
+
     </style>
 </head>
 <body oncontextmenu="return false;"> 
@@ -4033,8 +4045,7 @@ const Admin = {
                                     </div>
                                 </div>
                                 <input type="text" class="input-field q-t" value="${Admin.esc(q.q)}" placeholder="請輸入題目內容">
-                                <div class="q-short-note">簡答題會保存學員文字作答，後續由人工計分。</div>
-                                <div class="q-truefalse-note">是非題會以「○ 是／× 非」自動計分。</div>
+
                                 <div class="q-options-grid" hidden style="${(q.type || 'choice') === 'truefalse' ? '' : 'display:none !important;'}">
                                     ${((q.type || 'choice') === 'truefalse' ? ['是', '非'] : (Array.isArray(q.o) ? q.o : ["","","",""])).map((opt, oi) => `<div class="option-row"><span class="option-index">${oi+1}</span><label class="answer-radio-wrap" title="設為答案"><input type="radio" name="r-${c.id}-${qi}" value="${oi}" ${q.a==oi?'checked':''}> 答案</label><input type="text" class="input-field q-o" value="${Admin.esc(opt)}" ${(q.type || 'choice') === 'truefalse' ? 'readonly' : ''}></div>`).join('')}
                                 </div>
