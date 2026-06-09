@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+<!-- ATC_V001_MANUAL_SCORE_PER_SHORT_ANSWER_NO_SQL -->
+<!-- ATC_V001_FINAL_SCORE_EDIT_FUNCTION -->
+<!-- ATC_V001_QUIZ_POINTS_DISPLAY_MANUAL_SCORE_NOTE -->
 <!-- ATC_V001_POINTS_ALL_TYPES_AUTO_REMAINDER -->
 <html lang="zh-TW">
 <head>
@@ -1885,6 +1888,49 @@ body.question-sort-active .editor-helper {
             border-top: 1px dashed rgba(139,148,158,0.24);
         }
 
+    
+        /* V001 patch：測驗頁顯示配分、是非題格式一致、暫計分數提示 */
+        .quiz-points-badge {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 8px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(88,166,255,0.12);
+            border: 1px solid rgba(88,166,255,0.28);
+            color: var(--accent-color);
+            font-size: 12px;
+            font-weight: 800;
+            vertical-align: middle;
+        }
+        .quiz-option-btn .quiz-option-text {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .quiz-option-btn .tf-symbol {
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            width: 24px !important;
+            height: 24px !important;
+            min-width: 24px !important;
+            font-size: 18px !important;
+            font-weight: 900 !important;
+            line-height: 1 !important;
+            font-family: Arial, "Microsoft JhengHei", sans-serif !important;
+            vertical-align: middle;
+        }
+        .quiz-option-btn .tf-text {
+            display: inline-flex !important;
+            align-items: center;
+            min-width: 24px !important;
+            font-size: 15px !important;
+            font-weight: 800 !important;
+            line-height: 1.2 !important;
+            vertical-align: middle;
+        }
+
     </style>
 </head>
 <body oncontextmenu="return false;"> 
@@ -2124,8 +2170,8 @@ const Backend = {
                 user_answer_index: Number.isFinite(Number(item.userAnswerIndex)) ? Number(item.userAnswerIndex) : null,
                 user_answer_text: String(item.userAnswerText || ''),
                 correct_answer_index: Number.isFinite(Number(item.correctAnswerIndex)) ? Number(item.correctAnswerIndex) : null,
-                correct_answer_text: String(item.correctAnswerText || ''),
-                is_correct: !!item.isCorrect,
+                correct_answer_text: item.needsManualScore || item.manualScore !== undefined ? `人工給分：${item.manualScore === undefined || item.manualScore === null || item.manualScore === '' ? '待評' : item.manualScore} / 配分 ${item.points === undefined || item.points === null || item.points === '' ? '' : item.points}` : String(item.correctAnswerText || ''),
+                is_correct: item.needsManualScore ? false : !!item.isCorrect,
                 submitted_at_text: String(r.d || r.date || '')
             };
         });
@@ -2328,6 +2374,34 @@ const Backend = {
         } catch (err) {
             console.error('submitScore failed:', err);
             this.setStatus('⚠️ 成績寫入 Supabase 失敗', 'var(--danger-color)');
+            return { ok: false, error: String(err && err.message ? err.message : err) };
+        }
+    },
+    updateScoreRecord: async function(record) {
+        if (!this.enabled()) {
+            this.setStatus('⚠️ 尚未設定 Supabase', 'var(--warning-color)');
+            return { ok: false, error: '尚未設定 Supabase' };
+        }
+        try {
+            this.setStatus('最終分數與逐題紀錄寫入 Supabase 中...', 'var(--warning-color)');
+            const client = this.client();
+            const row = this.dbRowFromRecord(record);
+            const { error } = await client.from('atc_quiz_records').upsert(row, { onConflict: 'id' });
+            if (error) throw error;
+
+            const answerRows = this.answerRowsFromRecord(Object.assign({}, record, { recordId: row.id }));
+            if (answerRows.length) {
+                const del = await client.from('atc_quiz_answers').delete().eq('record_id', row.id);
+                if (del.error) throw del.error;
+                const ans = await client.from('atc_quiz_answers').insert(answerRows);
+                if (ans.error) throw ans.error;
+            }
+
+            this.setStatus('最終分數與逐題紀錄已寫入 Supabase', 'var(--success-color)');
+            return { ok: true, data: { ok: true, answerCount: answerRows.length } };
+        } catch (err) {
+            console.error('updateScoreRecord failed:', err);
+            this.setStatus('⚠️ 最終分數寫入 Supabase 失敗', 'var(--danger-color)');
             return { ok: false, error: String(err && err.message ? err.message : err) };
         }
     },
@@ -4647,6 +4721,92 @@ const Admin = {
     },
     
     
+    getManualScoreInfo: function(record) {
+        const details = Array.isArray(record && record.answerDetails) ? record.answerDetails : [];
+        const shortItems = details.filter(ans => ans && (ans.questionType === 'short' || ans.needsManualScore));
+        const existingManualSum = shortItems.reduce((sum, ans) => {
+            const n = Number(ans.manualScore);
+            return sum + (Number.isFinite(n) ? n : 0);
+        }, 0);
+        let autoScore = Number(record && record.autoScore);
+        if (!Number.isFinite(autoScore)) {
+            const currentScore = Number(record && (record.s ?? record.score ?? 0));
+            autoScore = record && record.manualScoreFinalized ? Math.max(0, currentScore - existingManualSum) : (Number.isFinite(currentScore) ? currentScore : 0);
+        }
+        return { details, shortItems, autoScore };
+    },
+    editFinalScore: async function(recordIndex) {
+        const r = App.state.records[recordIndex];
+        if (!r) return alert('找不到此筆測驗紀錄。');
+
+        const info = Admin.getManualScoreInfo(r);
+        const shortItems = info.shortItems;
+        const nowText = DateUtil.format();
+
+        if (shortItems.length) {
+            let manualSum = 0;
+            for (const ans of shortItems) {
+                const maxPointRaw = Number(ans.points);
+                const maxPoint = Number.isFinite(maxPointRaw) ? maxPointRaw : 0;
+                const oldManual = ans.manualScore === undefined || ans.manualScore === null || ans.manualScore === '' ? '' : String(ans.manualScore);
+                const qNo = ans.questionNo || '';
+                const qText = String(ans.questionText || '').slice(0, 80);
+                const userText = String(ans.userAnswerText || '').slice(0, 120);
+                const input = prompt(`Q${qNo} 簡答題給分（配分 ${maxPoint} 分）\n題目：${qText}\n作答：${userText}`, oldManual);
+                if (input === null) return;
+                const manualScore = Number(String(input).trim());
+                if (!Number.isFinite(manualScore) || manualScore < 0 || manualScore > maxPoint) {
+                    return alert(`Q${qNo} 請輸入 0 到 ${maxPoint} 之間的分數。`);
+                }
+                const rounded = Math.round(manualScore * 10) / 10;
+                ans.manualScore = rounded;
+                ans.needsManualScore = false;
+                ans.manualScoredAt = nowText;
+                ans.correctAnswerText = `人工給分：${rounded} / 配分 ${maxPoint}`;
+                ans.isCorrect = rounded >= maxPoint;
+                manualSum += rounded;
+            }
+
+            const finalScore = Math.max(0, Math.min(100, Math.round((info.autoScore + manualSum) * 10) / 10));
+            r.autoScore = Math.round(info.autoScore * 10) / 10;
+            r.manualScoreTotal = Math.round(manualSum * 10) / 10;
+            r.s = finalScore;
+            r.score = finalScore;
+            const noteParts = String(r.note || '').split('；').filter(Boolean).filter(part => !part.includes('人工計分後修正') && !part.includes('簡答題已給分'));
+            noteParts.push(`簡答題已給分 ${r.manualScoreTotal} 分，最終分數 ${finalScore} 分（${nowText}）`);
+            r.note = noteParts.join('；');
+            r.manualReviewRequired = false;
+            r.manualScoreFinalized = true;
+        } else {
+            const oldScore = Number(r.s ?? r.score ?? 0);
+            const input = prompt(`請輸入「${r.u || r.userCode || ''}」於「${r.c || r.courseTitle || ''}」的最終分數：`, Number.isFinite(oldScore) ? String(oldScore) : '');
+            if (input === null) return;
+            const nextScore = Number(String(input).trim());
+            if (!Number.isFinite(nextScore) || nextScore < 0 || nextScore > 100) return alert('請輸入 0 到 100 之間的分數。');
+            r.s = Math.round(nextScore * 10) / 10;
+            r.score = r.s;
+            const noteParts = String(r.note || '').split('；').filter(Boolean).filter(part => !part.includes('人工計分後修正'));
+            noteParts.push(`人工計分後修正為 ${r.s} 分（${nowText}）`);
+            r.note = noteParts.join('；');
+            r.manualReviewRequired = false;
+            r.manualScoreFinalized = true;
+        }
+
+        const ok = await Admin.withButtonStatus(async () => {
+            const result = await Backend.updateScoreRecord(r);
+            if (!(result && result.ok)) return false;
+            localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(App.state));
+            return true;
+        }, { syncingText: '寫入中...', successText: '✅ 已寫入', failText: '⚠️ 寫入失敗' });
+
+        if (ok) {
+            Admin.applyScoreFilter();
+            App.updateLoginStatus();
+            alert('已更新最終分數與逐題紀錄。');
+        } else {
+            alert('最終分數／逐題紀錄寫入 Supabase 失敗，請確認連線後再試一次。');
+        }
+    },
     deleteScoreRecord: async function(recordIndex) {
         const r = App.state.records[recordIndex];
         if (!r) return alert('找不到此筆測驗紀錄。');
@@ -4768,7 +4928,7 @@ const Admin = {
         if (!items.length) return alert('目前篩選條件下沒有可匯出的測驗成績。');
         const rows = [[
             '代字', '員工編號', '姓名', '測驗科目', '總分', '及格分數', '考核日期',
-            '題號', '題目', '選項', '作答序號', '作答內容', '正解序號', '正解內容', '是否正確'
+            '題號', '題型', '題目', '題目配分', '選項', '作答序號', '作答內容', '正解序號', '正解內容', '是否正確', '人工給分', '人工計分狀態'
         ]];
         let answerCount = 0;
         items.forEach(item => {
@@ -4787,13 +4947,17 @@ const Admin = {
                     String(passScore),
                     DateUtil.format(r.d),
                     String(ans.questionNo || ''),
+                    ans.questionType === 'short' ? '簡答題' : (ans.questionType === 'truefalse' ? '是非題' : '選擇題'),
                     ans.questionText || '',
+                    ans.points === undefined || ans.points === null || ans.points === '' ? '' : String(ans.points),
                     Array.isArray(ans.options) ? ans.options.map((o, i) => `(${i + 1}) ${o}`).join(' / ') : '',
                     Number.isFinite(Number(ans.userAnswerIndex)) ? String(Number(ans.userAnswerIndex) + 1) : '',
                     ans.userAnswerText || '',
                     Number.isFinite(Number(ans.correctAnswerIndex)) ? String(Number(ans.correctAnswerIndex) + 1) : '',
                     ans.correctAnswerText || '',
-                    ans.isCorrect ? '正確' : '錯誤'
+                    ans.needsManualScore ? '人工計分' : (ans.isCorrect ? '正確' : '錯誤'),
+                    ans.manualScore === undefined || ans.manualScore === null || ans.manualScore === '' ? '' : String(ans.manualScore),
+                    ans.needsManualScore ? '待人工計分' : (ans.manualScore !== undefined && ans.manualScore !== null && ans.manualScore !== '' ? '已人工計分' : '')
                 ]);
             });
         });
@@ -4879,6 +5043,7 @@ const Admin = {
                                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                                     ${course && locked ? `<button class="btn btn-warning btn-sm" onclick="Admin.unlockScoreByIndex(${item.idx})">解鎖再測驗</button>` : ''}
                                     ${course && !locked ? `<button class="btn btn-success btn-sm" onclick="Admin.relockStudentQuiz(${item.idx})">重新鎖回</button>` : ''}
+                                    <button class="btn btn-primary btn-sm" onclick="Admin.editFinalScore(${item.idx})">修改最終分數</button>
                                     <button class="btn btn-danger btn-sm" onclick="Admin.deleteScoreRecord(${item.idx})">刪除紀錄</button>
                                 </div>
                             </td>
@@ -4930,7 +5095,7 @@ const Quiz = {
             const qType = (q.type || 'choice') === 'short' ? 'short' : ((q.type || 'choice') === 'truefalse' ? 'truefalse' : 'choice');
             return `
             <div class="quiz-question-card" style="background:#1c2128; padding:20px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border-color);" id="q-card-${i}">
-                <p class="quiz-question-text"><strong>Q${i+1}：</strong> ${q.q}${qType === 'short' ? '<span class="manual-score-badge">簡答題｜人工計分</span>' : (qType === 'truefalse' ? '<span class="manual-score-badge">是非題</span>' : '')}<span class="unanswered-note hidden">未作答</span></p>
+                <p class="quiz-question-text"><strong>Q${i+1}：</strong> ${q.q}${qType === 'short' ? '<span class="manual-score-badge">簡答題｜人工計分</span>' : (qType === 'truefalse' ? '<span class="manual-score-badge">是非題</span>' : '')}${q.points === null || q.points === undefined || q.points === '' ? '' : `<span class="quiz-points-badge">配分 ${Number(q.points)} 分</span>`}<span class="unanswered-note hidden">未作答</span></p>
                 ${qType === 'short'
                     ? `<textarea class="quiz-short-answer" placeholder="請輸入簡答內容..." oninput="Quiz.inputShort(${i}, this)"></textarea>`
                     : `<div class="quiz-options-list">
@@ -4953,7 +5118,7 @@ const Quiz = {
     formatOptionText: function(text) {
         const raw = String(text || '').trim();
         if (raw === '是' || raw === '○ 是') return '<span class="tf-symbol">○</span><span class="tf-text">是</span>';
-        if (raw === '非' || raw === '否' || raw === '╳ 否' || raw === '× 否') return '<span class="tf-symbol">×</span><span class="tf-text">非</span>';
+        if (raw === '非' || raw === '否' || raw === '╳ 否' || raw === '× 否' || raw === '× 非') return '<span class="tf-symbol">×</span><span class="tf-text">非</span>';
         return Admin.esc(raw);
     },
     inputShort: function(qi, textarea) {
@@ -5242,6 +5407,7 @@ const Quiz = {
             const remainingPoints = Math.max(0, 100 - fixedPointsTotal);
             const perUnassignedQuestion = unassignedIndexes.length ? remainingPoints / unassignedIndexes.length : 0;
             const questionPoints = questions.map((q, i) => fixedPoints[i] === null ? perUnassignedQuestion : fixedPoints[i]);
+            const shortPointsTotal = shortIndexes.reduce((sum, i) => sum + Number(questionPoints[i] || 0), 0);
             const correctCount = autoGradableIndexes.filter(i => questions[i] && answers[i] === questions[i].a).length;
             const score = Math.round(autoGradableIndexes.reduce((sum, i) => sum + (questions[i] && answers[i] === questions[i].a ? questionPoints[i] : 0), 0));
             const passScoreNow = App.getPassScore(course);
@@ -5298,10 +5464,11 @@ const Quiz = {
                     courseTitle: course.title,
                     s: Number(score),
                     score: Number(score),
+                    autoScore: Number(score),
                     passScore: Number(passScoreNow),
                     d: nowText,
                     date: nowText,
-                    note: manualRequired ? `含簡答題，需人工計分；未填配分由系統平均計算` : '',
+                    note: manualRequired ? `簡答題（配分 ${Math.round(shortPointsTotal * 10) / 10} 分）待人工計分，暫計 ${score} 分` : '',
                     manualReviewRequired: manualRequired,
                     answerDetails: answerDetails,
                     questionSnapshot: questions.map((q, i) => ({
@@ -5355,7 +5522,7 @@ const Quiz = {
             App.showSec('sec-res');
             const finalScoreEl = document.getElementById('finalScore');
             if (finalScoreEl) {
-                finalScoreEl.innerText = manualRequired ? `${score}（目前暫計）` : score;
+                finalScoreEl.innerText = manualRequired ? `暫計 ${score} 分` : score;
                 finalScoreEl.style.color = manualRequired ? 'var(--warning-color)' : (passedNow ? 'var(--success-color)' : 'var(--danger-color)');
             }
             const resultPassNote = document.getElementById('resultPassNote');
@@ -5364,9 +5531,9 @@ const Quiz = {
                     resultPassNote.innerText = `管理員測試模式，本次分數不列入測驗紀錄。及格標準：${passScoreNow} 分。`;
                     resultPassNote.style.color = 'var(--warning-color)';
                 } else {
-                    const baseText = manualRequired ? `含簡答題，需人工計分；已配分 ${Math.round(fixedPointsTotal * 10) / 10} 分，未填配分由系統平均計算；目前暫計 ${score} 分` : `${passedNow ? '及格' : '未及格'}（及格標準：${passScoreNow} 分）`;
+                    const baseText = manualRequired ? `簡答題（配分 ${Math.round(shortPointsTotal * 10) / 10} 分）待人工計分，暫計 ${score} 分。` : `${passedNow ? '及格' : '未及格'}（及格標準：${passScoreNow} 分）`;
                     resultPassNote.setAttribute('data-result-base', baseText);
-                    resultPassNote.innerText = `${baseText}｜成績與作答已寫入 Supabase，可以關閉頁面。`;
+                    resultPassNote.innerText = manualRequired ? `${baseText}｜作答已寫入 Supabase。` : `${baseText}｜成績與作答已寫入 Supabase，可以關閉頁面。`;
                     resultPassNote.style.color = manualRequired ? 'var(--warning-color)' : (passedNow ? 'var(--success-color)' : 'var(--danger-color)');
                 }
             }
