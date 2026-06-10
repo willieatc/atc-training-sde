@@ -5338,6 +5338,18 @@ const Admin = {
     
     getManualScoreInfo: function(record) {
         const details = Array.isArray(record && record.answerDetails) ? record.answerDetails : [];
+        const course = App.state.courses.find(c => String(c.id || '') === String(record && (record.cid || record.courseId || '')) || String(c.title || '') === String(record && (record.c || record.courseTitle || '')));
+        const courseQuestions = course && Array.isArray(course.questions) ? course.questions : [];
+        details.forEach(ans => {
+            if (!ans || !(ans.questionType === 'short' || ans.needsManualScore)) return;
+            const qIndex = Number(ans.questionNo) - 1;
+            const q = courseQuestions[qIndex] || courseQuestions.find(item => String(item.id || '') === String(ans.questionId || ''));
+            const ref = String(ans.referenceAnswer || ans.correctAnswerText || (q && (q.referenceAnswer || q.correctAnswerText)) || '').trim();
+            if (ref) {
+                ans.referenceAnswer = ref;
+                if (!ans.correctAnswerText) ans.correctAnswerText = ref;
+            }
+        });
         const shortItems = details.filter(ans => ans && (ans.questionType === 'short' || ans.needsManualScore));
         const existingManualSum = shortItems.reduce((sum, ans) => {
             const n = Number(ans.manualScore);
@@ -5371,8 +5383,8 @@ const Admin = {
                 const qNo = ans.questionNo || '';
                 const qText = String(ans.questionText || '').slice(0, 80);
                 const userText = String(ans.userAnswerText || '').slice(0, 120);
-                const refText = String(ans.referenceAnswer || ans.correctAnswerText || '').slice(0, 160);
-                const refLine = refText ? `\n參考答案：${refText}` : '';
+                const refText = String(ans.referenceAnswer || ans.correctAnswerText || '').trim();
+                const refLine = refText ? `\n\n【參考答案】\n${refText.slice(0, 500)}` : '\n\n【參考答案】\n（未設定）';
                 const input = prompt(`Q${qNo} 簡答題給分（配分 ${maxPoint} 分）\n題目：${qText}\n作答：${userText}${refLine}`, oldManual);
                 if (input === null) return;
                 const manualScore = Number(String(input).trim());
@@ -5854,6 +5866,7 @@ const Quiz = {
                         <div class="review-q-title">Q${i + 1}：${Admin.esc(q.q)} <span class="manual-score-badge">人工計分</span></div>
                         ${q.imageData ? `<div class="review-question-image"><img src="${q.imageData}" alt="題目參考圖片" onclick="ImageLightbox.open(this.src)"></div>` : ''}
                         <div class="review-short-answer-label">簡答內容</div><div class="review-short-answer-box">${Admin.esc(String(selectedIndex || '（未填寫）'))}</div>
+                        <div class="review-short-answer-label">參考答案</div><div class="review-short-answer-box">${Admin.esc(String(q.referenceAnswer || q.correctAnswerText || '（未設定）'))}</div>
                     </div>`;
                 }
                 const selectedText = q.o[selectedIndex] || '';
@@ -5982,6 +5995,7 @@ const Quiz = {
                         <div class="result-answer-question">Q${i + 1}：${Admin.esc(q.q)} <span class="manual-score-badge">人工計分</span></div>
                         ${q.imageData ? `<div class="result-question-image"><img src="${q.imageData}" alt="題目參考圖片" onclick="ImageLightbox.open(this.src)"></div>` : ''}
                         <div class="result-short-answer-label">你的簡答作答</div><div class="result-short-answer-box">${Admin.esc(String(userIndex || '（未填寫）'))}</div>
+                        <div class="result-short-answer-label">參考答案</div><div class="result-short-answer-box">${Admin.esc(String(q.referenceAnswer || q.correctAnswerText || '（未設定）'))}</div>
                     </div>`;
                 }
                 const correctIndex = q.a;
@@ -6097,6 +6111,8 @@ const Quiz = {
                         imageData: String(q.imageData || ''),
                         options: Array.isArray(q.o) ? q.o.map(o => String(o || '')) : [],
                         correctAnswerIndex: (q.type || 'choice') === 'short' ? null : Number(q.a),
+                        correctAnswerText: (q.type || 'choice') === 'short' ? String(q.referenceAnswer || q.correctAnswerText || '') : '',
+                        referenceAnswer: (q.type || 'choice') === 'short' ? String(q.referenceAnswer || q.correctAnswerText || '') : '',
                         points: questionPoints[i]
                     }))
                 };
@@ -6109,7 +6125,9 @@ const Quiz = {
                 questionText: String(q.q || ''),
                 imageData: String(q.imageData || ''),
                 options: Array.isArray(q.o) ? q.o.map(o => String(o || '')) : [],
-                correctAnswerIndex: Number(q.a)
+                correctAnswerIndex: (q.type || 'choice') === 'short' ? null : Number(q.a),
+                correctAnswerText: (q.type || 'choice') === 'short' ? String(q.referenceAnswer || q.correctAnswerText || '') : '',
+                referenceAnswer: (q.type || 'choice') === 'short' ? String(q.referenceAnswer || q.correctAnswerText || '') : ''
             }));
 
             if (!App.isInstructor) {
