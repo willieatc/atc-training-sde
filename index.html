@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- ATC_V001_SUPABASE_STATUS_NO_BACKGROUND_FORCE -->
 <!-- ATC_V001_QUESTION_REFERENCE_IMAGE_SUPABASE_STATUS_TEXT -->
 <!-- ATC_V001_HIDE_QUESTION_TYPE_HINTS -->
 <!-- ATC_V001_ACCOUNT_BATCH_DELETE_SCORE_TOOLBAR_SWAP -->
@@ -2239,6 +2240,40 @@ body.question-sort-active .editor-helper {
             border-radius: 6px;
         }
 
+    
+        /* V001 patch：Supabase/同步提示徹底去背景 */
+        #cloudStatus,
+        #cloudStatus * {
+            background: none !important;
+            background-color: transparent !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            outline: none !important;
+            text-shadow: none !important;
+            padding: 0 !important;
+            border-radius: 0 !important;
+        }
+        #cloudStatus {
+            display: inline-block;
+            margin: 0 0 10px 0 !important;
+            line-height: 1.4;
+        }
+        .score-sync-card,
+        .score-sync-card * {
+            background: none !important;
+            background-color: transparent !important;
+            border-color: transparent !important;
+            box-shadow: none !important;
+        }
+        .score-sync-card {
+            border: 0 !important;
+            padding: 0 !important;
+        }
+        .score-sync-overlay {
+            background: rgba(0,0,0,0.36) !important;
+            backdrop-filter: none !important;
+        }
+
     </style>
 </head>
 <body oncontextmenu="return false;"> 
@@ -2250,7 +2285,7 @@ body.question-sort-active .editor-helper {
                 <div style="text-align: center; margin-bottom: 20px;">
                     <h1 style="margin-bottom:6px;">ATC 訓練管理系統</h1>
                     <div style="color:#ffffff; font-size:16px; font-weight:900; letter-spacing:0.5px; margin-bottom:6px; text-shadow:0 2px 4px rgba(0,0,0,0.72), 0 0 18px rgba(0,0,0,0.55), 0 0 2px rgba(255,255,255,0.35);">RCTP 臺北機場管制臺</div>
-                    <div id="cloudStatus" style="display:none; font-size:12px; color:#8b949e; margin-bottom:10px;">本機測試模式：尚未連線 Supabase</div>
+                    <div id="cloudStatus" style="display:none; font-size:12px; color:#8b949e; margin-bottom:10px; background:transparent; background-color:transparent; border:0; box-shadow:none; padding:0; border-radius:0;">本機測試模式：尚未連線 Supabase</div>
                     <span class="badge-instructor hidden">管理員模式</span>
                 </div>
                 <div style="background:#161b22; padding:30px; border-radius:12px; border:1px solid var(--border-color);">
@@ -2408,6 +2443,18 @@ const Backend = {
         }
         return this._client;
     },
+    applyPlainStatusStyle: function(el) {
+        if (!el) return;
+        el.removeAttribute('class');
+        el.style.background = 'transparent';
+        el.style.backgroundColor = 'transparent';
+        el.style.border = '0';
+        el.style.boxShadow = 'none';
+        el.style.outline = 'none';
+        el.style.padding = '0';
+        el.style.borderRadius = '0';
+        el.style.textShadow = 'none';
+    },
     setStatus: function(text, color) {
         const el = document.getElementById('cloudStatus');
         if (el) {
@@ -2415,12 +2462,8 @@ const Backend = {
             this._lastStatusText = text;
             el.innerText = text;
             el.style.color = color || '#8b949e';
-            el.style.background = 'transparent';
-            el.style.backgroundColor = 'transparent';
-            el.style.border = 'none';
-            el.style.boxShadow = 'none';
-            el.style.padding = '0';
-            el.style.display = (typeof App !== 'undefined' && App.isInstructor) ? 'block' : 'none';
+            this.applyPlainStatusStyle(el);
+            el.style.display = (typeof App !== 'undefined' && App.isInstructor) ? 'inline-block' : 'none';
         }
     },
     recordId: function(record) {
@@ -3439,7 +3482,10 @@ const App = {
     syncUI: function() {
         const adminBtn = document.getElementById('adminEntryBtn');
         const cloudStatus = document.getElementById('cloudStatus');
-        if (cloudStatus) cloudStatus.style.display = this.isInstructor ? 'block' : 'none';
+        if (cloudStatus) {
+            if (typeof Backend !== 'undefined' && Backend.applyPlainStatusStyle) Backend.applyPlainStatusStyle(cloudStatus);
+            cloudStatus.style.display = this.isInstructor ? 'inline-block' : 'none';
+        }
         if(this.isInstructor) {
             adminBtn.innerText = "⚙️ 管理員登入 (已授權)";
             adminBtn.classList.replace('btn-outline', 'btn-warning');
@@ -4729,7 +4775,8 @@ const Admin = {
 
         const cloudStatus = document.getElementById('cloudStatus');
         if (cloudStatus && App.isInstructor) {
-            cloudStatus.style.display = 'block';
+            if (typeof Backend !== 'undefined' && Backend.applyPlainStatusStyle) Backend.applyPlainStatusStyle(cloudStatus);
+            cloudStatus.style.display = 'inline-block';
             cloudStatus.innerText = ok ? 'Supabase 連線正常' : 'Supabase 寫入失敗，已保留本機資料';
             cloudStatus.style.color = ok ? 'var(--success-color)' : 'var(--danger-color)';
         }
