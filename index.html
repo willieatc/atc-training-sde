@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- ATC_V001_QUESTION_REFERENCE_IMAGE_SUPABASE_STATUS_TEXT -->
 <!-- ATC_V001_HIDE_QUESTION_TYPE_HINTS -->
 <!-- ATC_V001_ACCOUNT_BATCH_DELETE_SCORE_TOOLBAR_SWAP -->
 <!-- ATC_V001_SCORE_TABLE_COMPACT -->
@@ -2169,6 +2170,75 @@ body.question-sort-active .editor-helper {
             display: none !important;
         }
 
+    
+        /* V001 patch：Supabase 同步提示純文字、題目參考圖片 */
+        #cloudStatus {
+            background: transparent !important;
+            background-color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+        }
+        .q-image-tools {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 8px 0 10px;
+        }
+        .q-image-preview {
+            display: none;
+            margin: 8px 0 10px;
+            padding: 8px;
+            border: 1px solid rgba(88,166,255,0.22);
+            border-radius: 10px;
+            background: rgba(13,17,23,0.45);
+            max-width: 360px;
+        }
+        .q-image-preview.has-image {
+            display: block;
+        }
+        .q-image-preview img {
+            display: block;
+            max-width: 100%;
+            max-height: 220px;
+            border-radius: 8px;
+            object-fit: contain;
+        }
+        .quiz-question-image {
+            margin: 8px 0 12px 18px;
+            max-width: min(520px, calc(100% - 18px));
+            border-radius: 10px;
+            border: 1px solid rgba(88,166,255,0.28);
+            background: #0d1117;
+            padding: 8px;
+        }
+        .quiz-question-image img {
+            display: block;
+            max-width: 100%;
+            max-height: 360px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin: 0 auto;
+        }
+        .review-question-image,
+        .result-question-image {
+            margin: 8px 0;
+            max-width: 360px;
+            border-radius: 8px;
+            border: 1px solid rgba(88,166,255,0.22);
+            padding: 6px;
+            background: rgba(13,17,23,0.35);
+        }
+        .review-question-image img,
+        .result-question-image img {
+            display: block;
+            max-width: 100%;
+            max-height: 220px;
+            object-fit: contain;
+            border-radius: 6px;
+        }
+
     </style>
 </head>
 <body oncontextmenu="return false;"> 
@@ -2345,6 +2415,11 @@ const Backend = {
             this._lastStatusText = text;
             el.innerText = text;
             el.style.color = color || '#8b949e';
+            el.style.background = 'transparent';
+            el.style.backgroundColor = 'transparent';
+            el.style.border = 'none';
+            el.style.boxShadow = 'none';
+            el.style.padding = '0';
             el.style.display = (typeof App !== 'undefined' && App.isInstructor) ? 'block' : 'none';
         }
     },
@@ -4045,6 +4120,13 @@ const Admin = {
                                     </div>
                                 </div>
                                 <input type="text" class="input-field q-t" value="${Admin.esc(q.q)}" placeholder="請輸入題目內容">
+                                <input type="hidden" class="q-img-data" value="${Admin.esc(q.imageData || '')}">
+                                <div class="q-image-tools">
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="this.parentElement.querySelector('.q-img-file').click()">上傳參考圖片</button>
+                                    <input type="file" class="q-img-file hidden" accept="image/*" onchange="Admin.uploadQuestionImage(this)">
+                                    <button type="button" class="btn btn-danger btn-sm ${q.imageData ? '' : 'hidden'} q-img-remove" onclick="Admin.removeQuestionImage(this)">移除圖片</button>
+                                </div>
+                                <div class="q-image-preview ${q.imageData ? 'has-image' : ''}">${q.imageData ? `<img src="${Admin.esc(q.imageData)}" alt="題目參考圖片">` : ''}</div>
 
                                 <div class="q-options-grid" hidden style="${(q.type || 'choice') === 'truefalse' ? '' : 'display:none !important;'}">
                                     ${((q.type || 'choice') === 'truefalse' ? ['是', '非'] : (Array.isArray(q.o) ? q.o : ["","","",""])).map((opt, oi) => `<div class="option-row"><span class="option-index">${oi+1}</span><label class="answer-radio-wrap" title="設為答案"><input type="radio" name="r-${c.id}-${qi}" value="${oi}" ${q.a==oi?'checked':''}> 答案</label><input type="text" class="input-field q-o" value="${Admin.esc(opt)}" ${(q.type || 'choice') === 'truefalse' ? 'readonly' : ''}></div>`).join('')}
@@ -4062,7 +4144,7 @@ const Admin = {
             new Sortable(document.getElementById(`ql-${ci}`), {
                 draggable: '.q-row',
                 handle: '.q-sort-handle',
-                filter: 'input, textarea, select, option, button:not(.q-sort-handle), label, .input-field',
+                filter: 'input, textarea, select, option, button:not(.q-sort-handle), label, .input-field, .q-image-tools, .q-image-preview',
                 preventOnFilter: false,
                 animation: 180,
                 direction: 'vertical',
@@ -4171,7 +4253,8 @@ const Admin = {
                             if (!raw) return null;
                             const n = parseFloat(raw);
                             return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : null;
-                        })()
+                        })(),
+                        imageData: row.querySelector('.q-img-data') ? String(row.querySelector('.q-img-data').value || '') : ''
                     };
                 });
             }
@@ -4224,6 +4307,76 @@ const Admin = {
             Admin.renderEditor();
             Backend.setStatus('已新增科目，請按「儲存變更」寫入 Supabase', 'var(--warning-color)');
         }
+    },
+    readFileAsDataURL: function(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || ''));
+            reader.onerror = () => reject(reader.error || new Error('讀取圖片失敗'));
+            reader.readAsDataURL(file);
+        });
+    },
+    compressImageDataUrl: function(dataUrl, maxSize = 900, quality = 0.78) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    const scale = Math.min(1, maxSize / Math.max(img.width || 1, img.height || 1));
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.max(1, Math.round((img.width || 1) * scale));
+                    canvas.height = Math.max(1, Math.round((img.height || 1) * scale));
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                } catch (err) {
+                    console.warn('compressImageDataUrl failed, using original image', err);
+                    resolve(dataUrl);
+                }
+            };
+            img.onerror = () => resolve(dataUrl);
+            img.src = dataUrl;
+        });
+    },
+    uploadQuestionImage: async function(input) {
+        const file = input && input.files && input.files[0] ? input.files[0] : null;
+        if (!file) return;
+        if (!/^image\//.test(file.type || '')) {
+            input.value = '';
+            return alert('請上傳圖片檔。');
+        }
+        try {
+            const rawDataUrl = await Admin.readFileAsDataURL(file);
+            const dataUrl = await Admin.compressImageDataUrl(rawDataUrl, 900, 0.78);
+            const row = input.closest('.q-row');
+            if (!row) return;
+            const hidden = row.querySelector('.q-img-data');
+            const preview = row.querySelector('.q-image-preview');
+            const removeBtn = row.querySelector('.q-img-remove');
+            if (hidden) hidden.value = dataUrl;
+            if (preview) {
+                preview.classList.add('has-image');
+                preview.innerHTML = `<img src="${dataUrl}" alt="題目參考圖片">`;
+            }
+            if (removeBtn) removeBtn.classList.remove('hidden');
+            input.value = '';
+            Backend.setStatus('已加入題目參考圖片，請按「儲存變更」寫入 Supabase', 'var(--warning-color)');
+        } catch (err) {
+            console.error('uploadQuestionImage failed:', err);
+            alert('圖片讀取失敗，請改用其他圖片檔。');
+        }
+    },
+    removeQuestionImage: function(btn) {
+        const row = btn ? btn.closest('.q-row') : null;
+        if (!row) return;
+        const hidden = row.querySelector('.q-img-data');
+        const preview = row.querySelector('.q-image-preview');
+        if (hidden) hidden.value = '';
+        if (preview) {
+            preview.classList.remove('has-image');
+            preview.innerHTML = '';
+        }
+        btn.classList.add('hidden');
+        Backend.setStatus('已移除題目參考圖片，請按「儲存變更」寫入 Supabase', 'var(--warning-color)');
     },
     updateQuestionType: function(select) {
         const row = select ? select.closest('.q-row') : null;
@@ -4287,7 +4440,7 @@ const Admin = {
         Admin.sync();
         const course = App.state.courses[ci];
         if (!course) return;
-        course.questions.push({type:"choice", q:"", o:["","","",""], a:0});
+        course.questions.push({type:"choice", q:"", o:["","","",""], a:0, imageData:""});
         App.lastOpenedCourseId = course.id;
         App.pendingScrollQuestion = { courseIndex: ci, questionIndex: course.questions.length - 1 };
         Admin.renderEditor();
@@ -5321,6 +5474,7 @@ const Quiz = {
             return `
             <div class="quiz-question-card" style="background:#1c2128; padding:20px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border-color);" id="q-card-${i}">
                 <p class="quiz-question-text"><strong>Q${i+1}：</strong> ${q.q}${qType === 'short' ? '<span class="manual-score-badge">簡答題｜人工計分</span>' : (qType === 'truefalse' ? '<span class="manual-score-badge">是非題</span>' : '')}${q.points === null || q.points === undefined || q.points === '' ? '' : `<span class="quiz-points-badge">配分 ${Number(q.points)} 分</span>`}<span class="unanswered-note hidden">未作答</span></p>
+                ${q.imageData ? `<div class="quiz-question-image"><img src="${q.imageData}" alt="題目參考圖片"></div>` : ''}
                 ${qType === 'short'
                     ? `<textarea class="quiz-short-answer" placeholder="請輸入簡答內容..." oninput="Quiz.inputShort(${i}, this)"></textarea>`
                     : `<div class="quiz-options-list">
@@ -5466,12 +5620,14 @@ const Quiz = {
                 if (qType === 'short') {
                     return `<div class="review-answer-card">
                         <div class="review-q-title">Q${i + 1}：${Admin.esc(q.q)} <span class="manual-score-badge">人工計分</span></div>
+                        ${q.imageData ? `<div class="review-question-image"><img src="${q.imageData}" alt="題目參考圖片"></div>` : ''}
                         <div class="review-selected">簡答內容：${Admin.esc(String(selectedIndex || ''))}</div>
                     </div>`;
                 }
                 const selectedText = q.o[selectedIndex] || '';
                 return `<div class="review-answer-card">
                     <div class="review-q-title">Q${i + 1}：${Admin.esc(q.q)}</div>
+                    ${q.imageData ? `<div class="review-question-image"><img src="${q.imageData}" alt="題目參考圖片"></div>` : ''}
                     <div class="review-selected">答案：<strong>(${Number(selectedIndex) + 1})</strong> ${Quiz.formatOptionText(selectedText)}</div>
                 </div>`;
             }).join('')}
@@ -5592,6 +5748,7 @@ const Quiz = {
                 if (qType === 'short') {
                     return `<div class="result-answer-card">
                         <div class="result-answer-question">Q${i + 1}：${Admin.esc(q.q)} <span class="manual-score-badge">人工計分</span></div>
+                        ${q.imageData ? `<div class="result-question-image"><img src="${q.imageData}" alt="題目參考圖片"></div>` : ''}
                         <div class="result-answer-row">你的作答：<span class="result-answer-user">${Admin.esc(String(userIndex || ''))}</span></div>
                     </div>`;
                 }
@@ -5601,6 +5758,7 @@ const Quiz = {
                 const isCorrect = userIndex === correctIndex;
                 return `<div class="result-answer-card ${isCorrect ? 'correct' : 'wrong'}">
                     <div class="result-answer-question">Q${i + 1}：${Admin.esc(q.q)}</div>
+                    ${q.imageData ? `<div class="result-question-image"><img src="${q.imageData}" alt="題目參考圖片"></div>` : ''}
                     <div class="result-answer-row">答案：<span class="result-answer-correct">(${correctIndex + 1}) ${Quiz.formatOptionText(correctText)}</span></div>
                     <div class="result-answer-row">你的作答：<span class="result-answer-user ${isCorrect ? '' : 'wrong'}">(${Number(userIndex) + 1}) ${Quiz.formatOptionText(userText)}</span> ${isCorrect ? '✅' : '❌'}</div>
                 </div>`;
@@ -5648,6 +5806,7 @@ const Quiz = {
                         questionId: String(q.id || `q${i + 1}`),
                         questionType: 'short',
                         questionText: String(q.q || ''),
+                        imageData: String(q.imageData || ''),
                         options: [],
                         userAnswerIndex: null,
                         userAnswerText: String(answers[i] || ''),
@@ -5665,6 +5824,7 @@ const Quiz = {
                     questionId: String(q.id || `q${i + 1}`),
                     questionType: qType,
                     questionText: String(q.q || ''),
+                    imageData: String(q.imageData || ''),
                     options: opts,
                     userAnswerIndex: Number.isFinite(userIndex) ? userIndex : null,
                     userAnswerText: Number.isFinite(userIndex) ? String(opts[userIndex] || '') : '',
@@ -5699,8 +5859,9 @@ const Quiz = {
                     questionSnapshot: questions.map((q, i) => ({
                         questionNo: i + 1,
                         questionId: String(q.id || `q${i + 1}`),
-                        questionType: (q.type || 'choice') === 'short' ? 'short' : 'choice',
+                        questionType: (q.type || 'choice') === 'short' ? 'short' : ((q.type || 'choice') === 'truefalse' ? 'truefalse' : 'choice'),
                         questionText: String(q.q || ''),
+                        imageData: String(q.imageData || ''),
                         options: Array.isArray(q.o) ? q.o.map(o => String(o || '')) : [],
                         correctAnswerIndex: (q.type || 'choice') === 'short' ? null : Number(q.a),
                         points: questionPoints[i]
@@ -5713,6 +5874,7 @@ const Quiz = {
                 questionNo: i + 1,
                 questionId: String(q.id || `q${i + 1}`),
                 questionText: String(q.q || ''),
+                imageData: String(q.imageData || ''),
                 options: Array.isArray(q.o) ? q.o.map(o => String(o || '')) : [],
                 correctAnswerIndex: Number(q.a)
             }));
