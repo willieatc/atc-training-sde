@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <!-- ATC_V001_SUPABASE_STATUS_NO_BACKGROUND_FORCE -->
+<!-- ATC_V003_ADMIN_STATUS_TEXT_BACKGROUND_ONLY -->
+<!-- ATC_V002_QUESTION_IMAGE_CLICK_ZOOM -->
 <!-- ATC_V001_QUESTION_REFERENCE_IMAGE_SUPABASE_STATUS_TEXT -->
 <!-- ATC_V001_HIDE_QUESTION_TYPE_HINTS -->
 <!-- ATC_V001_ACCOUNT_BATCH_DELETE_SCORE_TOOLBAR_SWAP -->
@@ -2274,6 +2276,76 @@ body.question-sort-active .editor-helper {
             backdrop-filter: none !important;
         }
 
+
+        /* V003：後台 Supabase 狀態提示保留原樣式，只去除背景色 */
+        #adminGsStatus,
+        #adminGsStatus * {
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+
+        /* V002：測驗題參考圖片可點擊放大 */
+        .q-image-preview img,
+        .quiz-question-image img,
+        .review-question-image img,
+        .result-question-image img {
+            cursor: zoom-in;
+        }
+        .image-lightbox-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.78);
+            padding: 24px;
+        }
+        .image-lightbox-overlay.active {
+            display: flex;
+        }
+        .image-lightbox-box {
+            position: relative;
+            width: min(96vw, 1100px);
+            max-height: 92vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .image-lightbox-box img {
+            display: block;
+            max-width: 100%;
+            max-height: 88vh;
+            object-fit: contain;
+            border-radius: 10px;
+            background: #0d1117;
+            border: 1px solid rgba(255,255,255,0.18);
+            box-shadow: 0 18px 60px rgba(0,0,0,0.65);
+            cursor: zoom-out;
+        }
+        .image-lightbox-close {
+            position: absolute;
+            top: -14px;
+            right: -14px;
+            width: 38px;
+            height: 38px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.25);
+            background: #21262d;
+            color: #ffffff;
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+        }
+        @media (max-width: 640px) {
+            .image-lightbox-overlay { padding: 12px; }
+            .image-lightbox-close { top: 8px; right: 8px; }
+        }
+
     </style>
 </head>
 <body oncontextmenu="return false;"> 
@@ -3908,8 +3980,9 @@ const Admin = {
         return `"${s.replace(/"/g, '""')}"`;
     },
     csvTextCell: function(v) {
-        const s = String(v ?? '');
-        return `="${s.replace(/"/g, '""')}"`;
+        // 選項列表內含半形逗號，必須以標準 CSV 引號包住，
+        // 避免下載範本於 Excel / 試算表開啟時被拆成多欄，導致標題列與範例列錯位。
+        return Admin.csvCell(v);
     },
     parseCSV: function(text) {
         const rows = [];
@@ -4172,7 +4245,7 @@ const Admin = {
                                     <input type="file" class="q-img-file hidden" accept="image/*" onchange="Admin.uploadQuestionImage(this)">
                                     <button type="button" class="btn btn-danger btn-sm ${q.imageData ? '' : 'hidden'} q-img-remove" onclick="Admin.removeQuestionImage(this)">移除圖片</button>
                                 </div>
-                                <div class="q-image-preview ${q.imageData ? 'has-image' : ''}">${q.imageData ? `<img src="${Admin.esc(q.imageData)}" alt="題目參考圖片">` : ''}</div>
+                                <div class="q-image-preview ${q.imageData ? 'has-image' : ''}">${q.imageData ? `<img src="${Admin.esc(q.imageData)}" alt="題目參考圖片" onclick="ImageLightbox.open(this.src)">` : ''}</div>
 
                                 <div class="q-options-grid" hidden style="${(q.type || 'choice') === 'truefalse' ? '' : 'display:none !important;'}">
                                     ${((q.type || 'choice') === 'truefalse' ? ['是', '非'] : (Array.isArray(q.o) ? q.o : ["","","",""])).map((opt, oi) => `<div class="option-row"><span class="option-index">${oi+1}</span><label class="answer-radio-wrap" title="設為答案"><input type="radio" name="r-${c.id}-${qi}" value="${oi}" ${q.a==oi?'checked':''}> 答案</label><input type="text" class="input-field q-o" value="${Admin.esc(opt)}" ${(q.type || 'choice') === 'truefalse' ? 'readonly' : ''}></div>`).join('')}
@@ -4401,7 +4474,7 @@ const Admin = {
             if (hidden) hidden.value = dataUrl;
             if (preview) {
                 preview.classList.add('has-image');
-                preview.innerHTML = `<img src="${dataUrl}" alt="題目參考圖片">`;
+                preview.innerHTML = `<img src="${dataUrl}" alt="題目參考圖片" onclick="ImageLightbox.open(this.src)">`;
             }
             if (removeBtn) removeBtn.classList.remove('hidden');
             input.value = '';
@@ -4670,7 +4743,8 @@ const Admin = {
                 el.style.padding = '10px 12px';
                 el.style.borderRadius = '10px';
                 el.style.fontWeight = '700';
-                el.style.background = 'rgba(255,255,255,0.94)';
+                el.style.background = 'transparent';
+                el.style.backgroundColor = 'transparent';
                 el.style.border = '1px solid rgba(0,0,0,0.08)';
                 const firstCard = sec.querySelector('.card');
                 if (firstCard && firstCard.parentNode) firstCard.parentNode.insertBefore(el, firstCard.nextSibling);
@@ -4680,6 +4754,8 @@ const Admin = {
         if (!el) return;
         el.style.display = 'block';
         el.style.color = color || 'var(--warning-color)';
+        el.style.background = 'transparent';
+        el.style.backgroundColor = 'transparent';
         el.innerText = text || '';
     },
     refreshSupabaseStatusForAdmin: function() {
@@ -5521,7 +5597,7 @@ const Quiz = {
             return `
             <div class="quiz-question-card" style="background:#1c2128; padding:20px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border-color);" id="q-card-${i}">
                 <p class="quiz-question-text"><strong>Q${i+1}：</strong> ${q.q}${qType === 'short' ? '<span class="manual-score-badge">簡答題｜人工計分</span>' : (qType === 'truefalse' ? '<span class="manual-score-badge">是非題</span>' : '')}${q.points === null || q.points === undefined || q.points === '' ? '' : `<span class="quiz-points-badge">配分 ${Number(q.points)} 分</span>`}<span class="unanswered-note hidden">未作答</span></p>
-                ${q.imageData ? `<div class="quiz-question-image"><img src="${q.imageData}" alt="題目參考圖片"></div>` : ''}
+                ${q.imageData ? `<div class="quiz-question-image"><img src="${q.imageData}" alt="題目參考圖片" onclick="ImageLightbox.open(this.src)"></div>` : ''}
                 ${qType === 'short'
                     ? `<textarea class="quiz-short-answer" placeholder="請輸入簡答內容..." oninput="Quiz.inputShort(${i}, this)"></textarea>`
                     : `<div class="quiz-options-list">
@@ -5667,14 +5743,14 @@ const Quiz = {
                 if (qType === 'short') {
                     return `<div class="review-answer-card">
                         <div class="review-q-title">Q${i + 1}：${Admin.esc(q.q)} <span class="manual-score-badge">人工計分</span></div>
-                        ${q.imageData ? `<div class="review-question-image"><img src="${q.imageData}" alt="題目參考圖片"></div>` : ''}
+                        ${q.imageData ? `<div class="review-question-image"><img src="${q.imageData}" alt="題目參考圖片" onclick="ImageLightbox.open(this.src)"></div>` : ''}
                         <div class="review-selected">簡答內容：${Admin.esc(String(selectedIndex || ''))}</div>
                     </div>`;
                 }
                 const selectedText = q.o[selectedIndex] || '';
                 return `<div class="review-answer-card">
                     <div class="review-q-title">Q${i + 1}：${Admin.esc(q.q)}</div>
-                    ${q.imageData ? `<div class="review-question-image"><img src="${q.imageData}" alt="題目參考圖片"></div>` : ''}
+                    ${q.imageData ? `<div class="review-question-image"><img src="${q.imageData}" alt="題目參考圖片" onclick="ImageLightbox.open(this.src)"></div>` : ''}
                     <div class="review-selected">答案：<strong>(${Number(selectedIndex) + 1})</strong> ${Quiz.formatOptionText(selectedText)}</div>
                 </div>`;
             }).join('')}
@@ -5795,7 +5871,7 @@ const Quiz = {
                 if (qType === 'short') {
                     return `<div class="result-answer-card">
                         <div class="result-answer-question">Q${i + 1}：${Admin.esc(q.q)} <span class="manual-score-badge">人工計分</span></div>
-                        ${q.imageData ? `<div class="result-question-image"><img src="${q.imageData}" alt="題目參考圖片"></div>` : ''}
+                        ${q.imageData ? `<div class="result-question-image"><img src="${q.imageData}" alt="題目參考圖片" onclick="ImageLightbox.open(this.src)"></div>` : ''}
                         <div class="result-answer-row">你的作答：<span class="result-answer-user">${Admin.esc(String(userIndex || ''))}</span></div>
                     </div>`;
                 }
@@ -5805,7 +5881,7 @@ const Quiz = {
                 const isCorrect = userIndex === correctIndex;
                 return `<div class="result-answer-card ${isCorrect ? 'correct' : 'wrong'}">
                     <div class="result-answer-question">Q${i + 1}：${Admin.esc(q.q)}</div>
-                    ${q.imageData ? `<div class="result-question-image"><img src="${q.imageData}" alt="題目參考圖片"></div>` : ''}
+                    ${q.imageData ? `<div class="result-question-image"><img src="${q.imageData}" alt="題目參考圖片" onclick="ImageLightbox.open(this.src)"></div>` : ''}
                     <div class="result-answer-row">答案：<span class="result-answer-correct">(${correctIndex + 1}) ${Quiz.formatOptionText(correctText)}</span></div>
                     <div class="result-answer-row">你的作答：<span class="result-answer-user ${isCorrect ? '' : 'wrong'}">(${Number(userIndex) + 1}) ${Quiz.formatOptionText(userText)}</span> ${isCorrect ? '✅' : '❌'}</div>
                 </div>`;
@@ -5997,6 +6073,46 @@ try {
     console.warn('renderResultAnswers compatibility alias failed', e);
 }
 
+
+
+// V002：題目參考圖片點擊放大檢視
+const ImageLightbox = {
+    ensure: function() {
+        let overlay = document.getElementById('imageLightboxOverlay');
+        if (overlay) return overlay;
+        overlay = document.createElement('div');
+        overlay.id = 'imageLightboxOverlay';
+        overlay.className = 'image-lightbox-overlay';
+        overlay.innerHTML = `
+            <div class="image-lightbox-box" onclick="event.stopPropagation()">
+                <button type="button" class="image-lightbox-close" aria-label="關閉圖片" onclick="ImageLightbox.close()">×</button>
+                <img id="imageLightboxImg" alt="放大檢視圖片" onclick="ImageLightbox.close()">
+            </div>`;
+        overlay.addEventListener('click', function() { ImageLightbox.close(); });
+        document.body.appendChild(overlay);
+        return overlay;
+    },
+    open: function(src) {
+        if (!src) return;
+        const overlay = this.ensure();
+        const img = overlay.querySelector('#imageLightboxImg');
+        if (img) img.src = src;
+        overlay.classList.add('active');
+    },
+    close: function() {
+        const overlay = document.getElementById('imageLightboxOverlay');
+        if (!overlay) return;
+        overlay.classList.remove('active');
+        const img = overlay.querySelector('#imageLightboxImg');
+        if (img) img.removeAttribute('src');
+    },
+    init: function() {
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') ImageLightbox.close();
+        });
+    }
+};
+ImageLightbox.init();
 
 const RefreshGuard = {
     isActive: function() {
