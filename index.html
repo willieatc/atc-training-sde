@@ -2588,6 +2588,38 @@ body.question-sort-active .editor-helper {
         }
 
 
+
+        /* V006：系統設定分區快捷入口 */
+        .settings-section-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 10px;
+            margin: 0 0 14px 0;
+            background: #0d1117;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+        }
+        .settings-section-nav .btn {
+            min-height: 32px;
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        .settings-section-title-note {
+            font-size: 12px;
+            color: #8b949e;
+            margin-left: auto;
+        }
+        .settings-card.settings-card-highlight {
+            border-color: rgba(88,166,255,0.45);
+            box-shadow: 0 0 0 2px rgba(88,166,255,0.08);
+        }
+        @media (max-width: 760px) {
+            .settings-section-title-note { width: 100%; margin-left: 0; }
+            .settings-section-nav .btn { flex: 1 1 120px; }
+        }
+
         /* V005：進階系統設定－外觀與題庫編輯版面 */
         .settings-preview-box {
             min-height: 78px;
@@ -2762,7 +2794,7 @@ body.question-sort-active .editor-helper {
                     <div style="margin-top:20px; flex-grow:1; display:flex; flex-direction:column;">
                         <div class="admin-tab active" id="t-score" onclick="App.switchAdmin('score')">🔍 測驗成績查詢</div>
                         <div class="admin-tab" id="t-edit" onclick="App.switchAdmin('edit')">📚 教材與題庫編輯</div>
-                        <div class="admin-tab" id="t-settings" onclick="App.switchAdmin('settings')">🛠️ 系統設定</div>
+                        <div class="admin-tab" id="t-settings" onclick="App.switchAdmin('settings')">🛠️ 系統設定<br><span style="font-size:11px;color:#8b949e;font-weight:400;">基本／進階／按鈕</span></div>
                         <div class="admin-tab" id="t-rec" onclick="App.switchAdmin('rec')" style="margin-top:auto;">🔒 人員帳號管理</div>
                     </div>
                     <button id="adminCourseTesterBtn" class="btn btn-primary btn-sm" style="width:100%; margin-bottom:10px;" onclick="App.adminOpenCourseTester()">進入教材/測驗</button>
@@ -3494,6 +3526,17 @@ const App = {
         backupImportButtonEmoji: '',
         adminSidebarHomeButtonText: '返回首頁',
         adminSidebarHomeButtonEmoji: '',
+        showSidebarMenuEmoji: true,
+        sidebarMenuEmojiPosition: 'prefix',
+        adminScoreTabText: '測驗成績查詢',
+        adminScoreTabEmoji: '🔍',
+        adminEditTabText: '教材與題庫編輯',
+        adminEditTabEmoji: '📚',
+        adminSettingsTabText: '系統設定',
+        adminSettingsTabEmoji: '🛠️',
+        adminSettingsTabSubText: '基本／進階／按鈕',
+        adminRecTabText: '人員帳號管理',
+        adminRecTabEmoji: '🔒',
         adminPasswordCancelButtonText: '取消',
         adminPasswordCancelButtonEmoji: '',
         adminPasswordSubmitButtonText: '登入後台',
@@ -3519,6 +3562,43 @@ const App = {
         const emoji = String(settings[emojiKey] !== undefined ? settings[emojiKey] : fallbackEmoji || '').trim();
         if (settings.showButtonEmoji === false || !emoji) return text;
         return (settings.buttonEmojiPosition === 'suffix') ? `${text} ${emoji}`.trim() : `${emoji} ${text}`.trim();
+    },
+    sidebarMenuLabel: function(textKey, emojiKey, fallbackText, fallbackEmoji) {
+        const settings = this.ensureSystemSettings();
+        const text = String(settings[textKey] !== undefined ? settings[textKey] : fallbackText || '').trim();
+        const emoji = String(settings[emojiKey] !== undefined ? settings[emojiKey] : fallbackEmoji || '').trim();
+        if (settings.showSidebarMenuEmoji === false || !emoji) return text;
+        return (settings.sidebarMenuEmojiPosition === 'suffix') ? `${text} ${emoji}`.trim() : `${emoji} ${text}`.trim();
+    },
+    adminTabTitle: function(tab) {
+        const map = {
+            score: ['adminScoreTabText', 'adminScoreTabEmoji', this.DEFAULT_SYSTEM_SETTINGS.adminScoreTabText, this.DEFAULT_SYSTEM_SETTINGS.adminScoreTabEmoji],
+            edit: ['adminEditTabText', 'adminEditTabEmoji', this.DEFAULT_SYSTEM_SETTINGS.adminEditTabText, this.DEFAULT_SYSTEM_SETTINGS.adminEditTabEmoji],
+            settings: ['adminSettingsTabText', 'adminSettingsTabEmoji', this.DEFAULT_SYSTEM_SETTINGS.adminSettingsTabText, this.DEFAULT_SYSTEM_SETTINGS.adminSettingsTabEmoji],
+            rec: ['adminRecTabText', 'adminRecTabEmoji', this.DEFAULT_SYSTEM_SETTINGS.adminRecTabText, this.DEFAULT_SYSTEM_SETTINGS.adminRecTabEmoji]
+        };
+        const item = map[tab] || map.score;
+        return this.sidebarMenuLabel(item[0], item[1], item[2], item[3]);
+    },
+    applyAdminMenuLabels: function() {
+        const score = document.getElementById('t-score');
+        const edit = document.getElementById('t-edit');
+        const settings = document.getElementById('t-settings');
+        const rec = document.getElementById('t-rec');
+        if (score) score.innerHTML = this.adminTabTitle('score');
+        if (edit) edit.innerHTML = this.adminTabTitle('edit');
+        if (settings) {
+            const sub = String(this.getSystemSetting('adminSettingsTabSubText') || '').trim();
+            settings.innerHTML = this.adminTabTitle('settings') + (sub ? `<br><span style="font-size:11px;color:#8b949e;font-weight:400;">${this.escapeHtml(sub)}</span>` : '');
+        }
+        if (rec) rec.innerHTML = this.adminTabTitle('rec');
+        const mobile = document.getElementById('adminMobileCurrent');
+        if (mobile) mobile.innerText = `目前展開：${this.adminTabTitle(this.currentAdminTab || 'score').replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}\s]+/u, '')}`;
+    },
+    escapeHtml: function(str) {
+        return String(str || '').replace(/[&<>\"']/g, function(c) {
+            return ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'})[c];
+        });
     },
     applySystemSettings: function() {
         const settings = this.ensureSystemSettings();
@@ -3566,6 +3646,7 @@ const App = {
         setButtonText('adminPasswordSubmitBtn', 'adminPasswordSubmitButtonText', 'adminPasswordSubmitButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.adminPasswordSubmitButtonText, '');
         setButtonText('reviewBackBtn', 'reviewBackButtonText', 'reviewBackButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.reviewBackButtonText, '');
         if (!Quiz.submitInProgress) setButtonText('reviewConfirmBtn', 'reviewConfirmButtonText', 'reviewConfirmButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.reviewConfirmButtonText, '');
+        this.applyAdminMenuLabels();
         if (this.syncUI) this.syncUI();
 
         const root = document.documentElement;
@@ -4445,6 +4526,20 @@ const App = {
 };
 
 const Admin = { 
+    scrollToSettingsSection: function(sectionId) {
+        const el = document.getElementById(sectionId);
+        const content = document.getElementById('adminContent');
+        if (!el) return;
+        if (content && content.contains(el)) {
+            const offset = el.offsetTop - 12;
+            content.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
+        } else {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        el.classList.add('settings-card-highlight');
+        setTimeout(() => el.classList.remove('settings-card-highlight'), 900);
+    },
+
     renderSettings: function() {
         App.ensureSystemSettings();
         const s = App.state.systemSettings;
@@ -4460,8 +4555,15 @@ const Admin = {
                 </div>
             </div>
             <div class="settings-grid">
-                <div class="settings-card">
-                    <h4>首頁與狀態顯示</h4>
+                <div class="settings-section-nav">
+                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.scrollToSettingsSection('settingSectionBasic')">基本文字設定</button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.scrollToSettingsSection('settingSectionAdvanced')">進階版面設定</button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.scrollToSettingsSection('settingSectionButtons')">按鈕文字 / Emoji</button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.scrollToSettingsSection('settingSectionSidebarMenu')">左側選單文字 / 圖示</button>
+                    <span class="settings-section-title-note">點上方按鈕可直接跳到設定區塊</span>
+                </div>
+                <div class="settings-card settings-card-highlight" id="settingSectionBasic">
+                    <h4>基本文字設定｜首頁與狀態顯示</h4>
                     <div class="settings-row">
                         <label>網站標題</label>
                         <input id="settingAppTitle" class="input-field" value="${Admin.esc(s.appTitle || '')}">
@@ -4520,8 +4622,8 @@ const Admin = {
                         <textarea id="settingScoreSyncNote" class="input-field">${Admin.esc(s.scoreSyncNote || '')}</textarea>
                     </div>
                 </div>
-                <div class="settings-card">
-                    <h4>外觀與首頁背景</h4>
+                <div class="settings-card settings-card-highlight" id="settingSectionAdvanced">
+                    <h4>進階版面設定｜外觀與首頁背景</h4>
                     <div class="settings-row">
                         <label>主色調</label>
                         <div>
@@ -4581,7 +4683,7 @@ const Admin = {
                     </div>
                 </div>
                 <div class="settings-card">
-                    <h4>後台與題庫編輯版面</h4>
+                    <h4>進階版面設定｜後台與題庫編輯版面</h4>
                     <div class="settings-row">
                         <label>後台頂欄</label>
                         <select id="settingAdminHeaderMode" class="select-field">
@@ -4614,8 +4716,8 @@ const Admin = {
                         </select>
                     </div>
                 </div>
-                <div class="settings-card">
-                    <h4>按鈕文字與 Emoji</h4>
+                <div class="settings-card settings-card-highlight" id="settingSectionButtons">
+                    <h4>按鈕設定｜按鈕文字與 Emoji</h4>
                     <div class="settings-row">
                         <label>Emoji 顯示</label>
                         <div>
@@ -4650,6 +4752,28 @@ const Admin = {
                     ${Admin.renderButtonSettingRow('匯出備份按鈕', 'BackupExportButton', s.backupExportButtonText, s.backupExportButtonEmoji)}
                     ${Admin.renderButtonSettingRow('匯入備份按鈕', 'BackupImportButton', s.backupImportButtonText, s.backupImportButtonEmoji)}
                 </div>
+                <div class="settings-card settings-card-highlight" id="settingSectionSidebarMenu">
+                    <h4>左側選單設定｜文字與圖示</h4>
+                    <div class="settings-row">
+                        <label>選單圖示顯示</label>
+                        <div>
+                            <label class="settings-switch-row"><input type="checkbox" class="row-check" id="settingShowSidebarMenuEmoji" ${s.showSidebarMenuEmoji === false ? '' : 'checked'}> 顯示左側選單 Emoji / 圖示</label>
+                            <select id="settingSidebarMenuEmojiPosition" class="select-field" style="margin-top:8px;">
+                                <option value="prefix" ${s.sidebarMenuEmojiPosition === 'prefix' || !s.sidebarMenuEmojiPosition ? 'selected' : ''}>圖示在文字前</option>
+                                <option value="suffix" ${s.sidebarMenuEmojiPosition === 'suffix' ? 'selected' : ''}>圖示在文字後</option>
+                            </select>
+                            <div class="settings-help">這裡只控制後台左側功能選單，例如測驗成績、教材題庫、系統設定、人員帳號。圖示欄位可輸入 emoji，也可以清空。</div>
+                        </div>
+                    </div>
+                    ${Admin.renderMenuSettingRow('測驗成績選單', 'AdminScoreTab', s.adminScoreTabText, s.adminScoreTabEmoji)}
+                    ${Admin.renderMenuSettingRow('教材與題庫選單', 'AdminEditTab', s.adminEditTabText, s.adminEditTabEmoji)}
+                    ${Admin.renderMenuSettingRow('系統設定選單', 'AdminSettingsTab', s.adminSettingsTabText, s.adminSettingsTabEmoji)}
+                    <div class="settings-row">
+                        <label>系統設定選單副文字</label>
+                        <input id="settingAdminSettingsTabSubText" class="input-field" value="${Admin.esc(s.adminSettingsTabSubText || '')}" placeholder="例如：基本／進階／按鈕">
+                    </div>
+                    ${Admin.renderMenuSettingRow('人員帳號選單', 'AdminRecTab', s.adminRecTabText, s.adminRecTabEmoji)}
+                </div>
                 <div class="settings-actions">
                     <button class="btn btn-success" onclick="Admin.saveSystemSettings()">儲存設定</button>
                     <button class="btn btn-outline" onclick="Admin.resetSystemSettings()">還原預設</button>
@@ -4669,7 +4793,27 @@ const Admin = {
                 </div>
             </div>`;
     },
+    renderMenuSettingRow: function(label, keyBase, textValue, emojiValue) {
+        const textId = `setting${keyBase}Text`;
+        const emojiId = `setting${keyBase}Emoji`;
+        return `
+            <div class="settings-row">
+                <label>${Admin.esc(label)}</label>
+                <div style="display:grid; grid-template-columns:minmax(0,1fr) 96px; gap:8px;">
+                    <input id="${textId}" class="input-field" value="${Admin.esc(textValue || '')}" placeholder="選單文字">
+                    <input id="${emojiId}" class="input-field" value="${Admin.esc(emojiValue || '')}" placeholder="圖示" maxlength="12">
+                </div>
+            </div>`;
+    },
     readButtonSettingPair: function(keyBase, defaultTextKey, defaultEmojiKey) {
+        const t = document.getElementById(`setting${keyBase}Text`);
+        const e = document.getElementById(`setting${keyBase}Emoji`);
+        const out = {};
+        out[defaultTextKey] = t ? t.value : App.DEFAULT_SYSTEM_SETTINGS[defaultTextKey];
+        out[defaultEmojiKey] = e ? e.value : App.DEFAULT_SYSTEM_SETTINGS[defaultEmojiKey];
+        return out;
+    },
+    readMenuSettingPair: function(keyBase, defaultTextKey, defaultEmojiKey) {
         const t = document.getElementById(`setting${keyBase}Text`);
         const e = document.getElementById(`setting${keyBase}Emoji`);
         const out = {};
@@ -4702,6 +4846,13 @@ const Admin = {
             Admin.readButtonSettingPair('AdminPasswordCancelButton', 'adminPasswordCancelButtonText', 'adminPasswordCancelButtonEmoji'),
             Admin.readButtonSettingPair('AdminPasswordSubmitButton', 'adminPasswordSubmitButtonText', 'adminPasswordSubmitButtonEmoji')
         );
+        const menuPairs = Object.assign(
+            {},
+            Admin.readMenuSettingPair('AdminScoreTab', 'adminScoreTabText', 'adminScoreTabEmoji'),
+            Admin.readMenuSettingPair('AdminEditTab', 'adminEditTabText', 'adminEditTabEmoji'),
+            Admin.readMenuSettingPair('AdminSettingsTab', 'adminSettingsTabText', 'adminSettingsTabEmoji'),
+            Admin.readMenuSettingPair('AdminRecTab', 'adminRecTabText', 'adminRecTabEmoji')
+        );
         return Object.assign({
             appTitle: (document.getElementById('settingAppTitle') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.appTitle,
             appSubtitle: (document.getElementById('settingAppSubtitle') || {}).value || '',
@@ -4729,8 +4880,11 @@ const Admin = {
             questionInputPosition: (document.getElementById('settingQuestionInputPosition') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.questionInputPosition,
             imageToolsLayout: (document.getElementById('settingImageToolsLayout') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.imageToolsLayout,
             showButtonEmoji: !!((document.getElementById('settingShowButtonEmoji') || {}).checked),
-            buttonEmojiPosition: (document.getElementById('settingButtonEmojiPosition') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.buttonEmojiPosition
-        }, buttonPairs);
+            buttonEmojiPosition: (document.getElementById('settingButtonEmojiPosition') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.buttonEmojiPosition,
+            showSidebarMenuEmoji: !!((document.getElementById('settingShowSidebarMenuEmoji') || {}).checked),
+            sidebarMenuEmojiPosition: (document.getElementById('settingSidebarMenuEmojiPosition') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.sidebarMenuEmojiPosition,
+            adminSettingsTabSubText: (document.getElementById('settingAdminSettingsTabSubText') || {}).value || ''
+        }, buttonPairs, menuPairs);
     },
     uploadSettingBackgroundImage: async function(input) {
         const file = input && input.files && input.files[0] ? input.files[0] : null;
