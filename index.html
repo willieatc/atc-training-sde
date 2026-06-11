@@ -2292,6 +2292,15 @@ body.question-sort-active .editor-helper {
             flex-wrap: wrap;
             margin: 8px 0 10px;
         }
+        .q-image-source-tools .q-group-picker {
+            flex: 1 1 240px;
+            max-width: 320px;
+            min-width: 180px;
+            margin: 0;
+        }
+        .q-image-source-tools .q-group-picker.hidden {
+            display: none !important;
+        }
         .q-image-preview {
             display: none;
             margin: 8px 0 10px;
@@ -4365,7 +4374,7 @@ const Admin = {
                             <input type="file" class="qg-img-file hidden" accept="image/*" onchange="Admin.uploadQuestionGroupImage(this)">
                             <button type="button" class="btn btn-danger btn-sm" onclick="Admin.removeQuestionGroup(${ci}, ${gi})">刪除題組</button>
                         </div>
-                    `).join('') : `<div class="editor-helper">尚未建立題組圖片。若多題共用同一張圖片，請先新增題組圖片。</div>`}
+                    `).join('') : ''}
                 </div>
             </div>`;
     },
@@ -4420,6 +4429,16 @@ const Admin = {
             console.error('uploadQuestionGroupImage failed:', err);
             alert('圖片讀取失敗，請改用其他圖片檔。');
         }
+    },
+    toggleQuestionGroupPicker: function(btn) {
+        const tools = btn ? btn.closest('.q-image-tools') : null;
+        const select = tools ? tools.querySelector('.q-group-id') : null;
+        if (!select) return;
+        if (select.options.length <= 1) {
+            return alert('尚未新增題組圖片。請先在上方「題組共用圖片」新增並上傳圖片。');
+        }
+        select.classList.toggle('hidden');
+        if (!select.classList.contains('hidden')) select.focus();
     },
     updateQuestionImageSource: function(select) {
         const row = select ? select.closest('.q-row') : null;
@@ -4502,17 +4521,15 @@ const Admin = {
                                     </div>
                                 </div>
                                 <input type="text" class="input-field q-t" value="${Admin.esc(q.q)}" placeholder="請輸入題目內容">
-                                <div class="q-group-tools">
-                                    <select class="select-field q-group-id" onchange="Admin.updateQuestionImageSource(this)">
+                                <input type="hidden" class="q-img-data" value="${Admin.esc(q.imageData || '')}">
+                                <div class="q-image-tools q-image-source-tools">
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="this.parentElement.querySelector('.q-img-file').click()">上傳參考圖片</button>
+                                    <input type="file" class="q-img-file hidden" accept="image/*" onchange="Admin.uploadQuestionImage(this)">
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.toggleQuestionGroupPicker(this)">使用題組圖片</button>
+                                    <select class="select-field q-group-id q-group-picker ${q.imageGroupId ? '' : 'hidden'}" onchange="Admin.updateQuestionImageSource(this)">
                                         <option value="">不使用題組圖片</option>
                                         ${Admin.getQuestionGroups(c).map(g => `<option value="${Admin.esc(g.id)}" ${String(q.imageGroupId || '') === String(g.id) ? 'selected' : ''}>${Admin.esc(g.title || '題組圖片')}</option>`).join('')}
                                     </select>
-                                    <div class="q-group-note">若多題共用同一張圖片，可先在上方「題組共用圖片」上傳一次，再於各題選取題組。</div>
-                                </div>
-                                <input type="hidden" class="q-img-data" value="${Admin.esc(q.imageData || '')}">
-                                <div class="q-image-tools">
-                                    <button type="button" class="btn btn-outline btn-sm" onclick="this.parentElement.querySelector('.q-img-file').click()">上傳參考圖片</button>
-                                    <input type="file" class="q-img-file hidden" accept="image/*" onchange="Admin.uploadQuestionImage(this)">
                                     <button type="button" class="btn btn-danger btn-sm ${q.imageData ? '' : 'hidden'} q-img-remove" onclick="Admin.removeQuestionImage(this)">移除圖片</button>
                                 </div>
                                 <div class="q-image-preview ${q.imageData ? 'has-image' : ''}">${q.imageData ? `<img src="${Admin.esc(q.imageData)}" alt="題目參考圖片" onclick="ImageLightbox.open(this.src)">` : ''}</div>
