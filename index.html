@@ -2587,6 +2587,110 @@ body.question-sort-active .editor-helper {
             .settings-actions .btn { flex: 1 1 140px; }
         }
 
+
+        /* V005：進階系統設定－外觀與題庫編輯版面 */
+        .settings-preview-box {
+            min-height: 78px;
+            border: 1px dashed var(--border-color);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.03);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .settings-preview-box.has-image { border-style: solid; }
+        .settings-preview-box img {
+            max-width: 100%;
+            max-height: 160px;
+            display: block;
+            cursor: zoom-in;
+        }
+        .setting-inline-tools {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .settings-color-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .settings-color-row input[type="color"] {
+            width: 54px;
+            height: 38px;
+            padding: 2px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: #0d1117;
+        }
+        body[data-density="compact"] .section { padding: 22px; }
+        body[data-density="compact"] .editor-card,
+        body[data-density="compact"] .settings-card,
+        body[data-density="compact"] .q-row { padding: 12px; }
+        body[data-density="compact"] .input-field,
+        body[data-density="compact"] .select-field { padding: 8px; margin: 5px 0; }
+        body[data-density="compact"] .q-row-header { margin-bottom: 8px; }
+        body[data-density="compact"] .course-item { margin-bottom: 10px; }
+        body[data-density="wide"] .main-container { height: 94vh; }
+        body[data-panel-width="wide"] .app-wrapper { width: min(100vw, 1560px); }
+        body[data-panel-width="wide"] .main-container { width: min(1520px, calc(100vw - 24px)); }
+        body[data-panel-width="narrow"] .app-wrapper { width: min(100vw, 1120px); }
+        body[data-panel-width="narrow"] .main-container { width: min(1080px, calc(100vw - 24px)); }
+        body[data-login-bg-mode="none"] #sec-login::before,
+        body[data-login-bg-mode="none"] #sec-login::after { display: none !important; }
+        body[data-login-bg-mode="gradient"] #sec-login::before {
+            background-image: linear-gradient(135deg, rgba(13,17,23,0.96), rgba(31,111,235,0.30), rgba(63,185,80,0.14)) !important;
+            filter: none !important;
+            transform: none !important;
+        }
+        body[data-login-bg-mode="custom"] #sec-login::before {
+            background-image: var(--login-bg-image) !important;
+            background-size: var(--login-bg-size, cover) !important;
+            background-position: center !important;
+            background-repeat: var(--login-bg-repeat, no-repeat) !important;
+        }
+        body[data-login-position="left"] #sec-login.active { justify-content: flex-start !important; }
+        body[data-login-position="right"] #sec-login.active { justify-content: flex-end !important; }
+        body[data-login-position="left"] #sec-login .login-card-wrap,
+        body[data-login-position="left"] #sec-login .login-panel { margin-left: min(7vw, 90px) !important; margin-right: auto !important; }
+        body[data-login-position="right"] #sec-login .login-card-wrap,
+        body[data-login-position="right"] #sec-login .login-panel { margin-left: auto !important; margin-right: min(7vw, 90px) !important; }
+        body[data-login-position="center"] #sec-login .login-card-wrap,
+        body[data-login-position="center"] #sec-login .login-panel { margin-left: auto !important; margin-right: auto !important; }
+        body[data-question-layout="compact"] .q-row-header { align-items: center; }
+        body[data-question-layout="compact"] .q-row-actions { gap: 6px; }
+        body[data-question-layout="compact"] .q-score-field-wrap { white-space: nowrap; }
+        body[data-question-layout="card"] .q-row { border-color: rgba(88,166,255,0.35); box-shadow: 0 8px 22px rgba(0,0,0,0.18); }
+        body[data-q-input-position="top"] .q-row { display: flex; flex-direction: column; }
+        body[data-q-input-position="top"] .q-row .q-t { order: 1; }
+        body[data-q-input-position="top"] .q-row .q-row-header { order: 2; }
+        body[data-q-input-position="top"] .q-row .q-image-tools { order: 3; }
+        body[data-q-input-position="top"] .q-row .q-image-preview { order: 4; }
+        body[data-q-input-position="top"] .q-row .q-reference-answer-wrap { order: 5; }
+        body[data-q-input-position="top"] .q-row .q-options-grid { order: 6; }
+        body[data-q-input-position="bottom"] .q-row { display: flex; flex-direction: column; }
+        body[data-q-input-position="bottom"] .q-row .q-row-header { order: 1; }
+        body[data-q-input-position="bottom"] .q-row .q-image-tools { order: 2; }
+        body[data-q-input-position="bottom"] .q-row .q-image-preview { order: 3; }
+        body[data-q-input-position="bottom"] .q-row .q-reference-answer-wrap { order: 4; }
+        body[data-q-input-position="bottom"] .q-row .q-options-grid { order: 5; }
+        body[data-q-input-position="bottom"] .q-row .q-t { order: 6; }
+        body[data-image-tools-layout="stack"] .q-image-tools { flex-direction: column; align-items: stretch; }
+        body[data-image-tools-layout="stack"] .q-image-tools .btn,
+        body[data-image-tools-layout="stack"] .q-image-tools .select-field { width: 100%; }
+        body[data-image-tools-layout="inline"] .q-image-tools { flex-direction: row; align-items: center; }
+        body[data-admin-header="compact"] .sticky-header { padding-top: 10px; padding-bottom: 10px; margin-bottom: 12px; }
+        body[data-admin-header="compact"] .header-actions { padding: 5px; gap: 6px; }
+        @media (max-width: 760px) {
+            body[data-login-position="left"] #sec-login .login-card-wrap,
+            body[data-login-position="right"] #sec-login .login-card-wrap,
+            body[data-login-position="left"] #sec-login .login-panel,
+            body[data-login-position="right"] #sec-login .login-panel { margin-left: auto !important; margin-right: auto !important; }
+        }
+
 </style>
 </head>
 <body oncontextmenu="return false;"> 
@@ -2661,14 +2765,14 @@ body.question-sort-active .editor-helper {
                         <div class="admin-tab" id="t-settings" onclick="App.switchAdmin('settings')">🛠️ 系統設定</div>
                         <div class="admin-tab" id="t-rec" onclick="App.switchAdmin('rec')" style="margin-top:auto;">🔒 人員帳號管理</div>
                     </div>
-                    <button class="btn btn-primary btn-sm" style="width:100%; margin-bottom:10px;" onclick="App.adminOpenCourseTester()">進入教材/測驗</button>
-                    <button class="btn btn-warning btn-sm" style="width:100%; margin-bottom:10px;" onclick="App.logoutInstructor()">管理員登出</button>
+                    <button id="adminCourseTesterBtn" class="btn btn-primary btn-sm" style="width:100%; margin-bottom:10px;" onclick="App.adminOpenCourseTester()">進入教材/測驗</button>
+                    <button id="adminLogoutBtn" class="btn btn-warning btn-sm" style="width:100%; margin-bottom:10px;" onclick="App.logoutInstructor()">管理員登出</button>
                     <div class="backup-inline-tools">
-                        <button class="btn btn-success btn-sm" onclick="Backup.exportLocal()">匯出備份</button>
-                        <button class="btn btn-primary btn-sm" onclick="document.getElementById('backupImportFile').click()">匯入備份</button>
+                        <button id="backupExportBtn" class="btn btn-success btn-sm" onclick="Backup.exportLocal()">匯出備份</button>
+                        <button id="backupImportBtn" class="btn btn-primary btn-sm" onclick="document.getElementById('backupImportFile').click()">匯入備份</button>
                     </div>
                     <input type="file" id="backupImportFile" accept=".json,application/json" class="hidden" onchange="Backup.importLocal(this)">
-                    <button class="btn btn-outline btn-sm" style="width:100%;" onclick="App.toHome()">返回首頁</button>
+                    <button id="adminSidebarHomeBtn" class="btn btn-outline btn-sm" style="width:100%;" onclick="App.toHome()">返回首頁</button>
                 </div>
                 <div class="admin-content scroll-area" id="adminContent">
                     <div id="panel-rec" class="hidden"><div id="userTable"></div></div>
@@ -2695,8 +2799,8 @@ body.question-sort-active .editor-helper {
         </div>
         <div id="adminPasswordError" class="admin-password-error"></div>
         <div class="admin-password-actions">
-            <button type="button" class="btn btn-outline" onclick="App.closeAdminPasswordModal()">取消</button>
-            <button type="button" class="btn btn-primary" onclick="App.submitAdminPassword()">登入後台</button>
+            <button type="button" id="adminPasswordCancelBtn" class="btn btn-outline" onclick="App.closeAdminPasswordModal()">取消</button>
+            <button type="button" id="adminPasswordSubmitBtn" class="btn btn-primary" onclick="App.submitAdminPassword()">登入後台</button>
         </div>
     </div>
 </div>
@@ -2919,7 +3023,8 @@ const Backend = {
                 userNames: settings.user_names && typeof settings.user_names === 'object' ? settings.user_names : {},
                 quizLocks: this.buildLocks(records, quizUnlocks, courses),
                 quizUnlocks: quizUnlocks,
-                adminPw: settings.admin_pw || 'rctp3023'
+                adminPw: settings.admin_pw || 'rctp3023',
+                systemSettings: settings.system_settings && typeof settings.system_settings === 'object' ? settings.system_settings : {}
             };
             App.state.courses.forEach(c => {
                 const n = Number(c.passScore);
@@ -2957,10 +3062,16 @@ const Backend = {
                 courses: Array.isArray(state && state.courses) ? state.courses : [],
                 admin_pw: (state && state.adminPw) ? String(state.adminPw) : (settings.admin_pw || 'rctp3023'),
                 quiz_unlocks: (state && state.quizUnlocks && typeof state.quizUnlocks === 'object') ? state.quizUnlocks : (settings.quiz_unlocks || {}),
+                system_settings: (state && state.systemSettings && typeof state.systemSettings === 'object') ? state.systemSettings : (settings.system_settings || {}),
                 revision: nextRevision
             };
-            const { error } = await client.from('atc_app_settings').upsert(payload, { onConflict: 'id' });
-            if (error) throw error;
+            let upsertRes = await client.from('atc_app_settings').upsert(payload, { onConflict: 'id' });
+            if (upsertRes.error && /system_settings|schema cache|column/i.test(String(upsertRes.error.message || ''))) {
+                delete payload.system_settings;
+                upsertRes = await client.from('atc_app_settings').upsert(payload, { onConflict: 'id' });
+                if (!upsertRes.error) console.warn('system_settings 欄位尚未建立，系統設定僅保存在本機。');
+            }
+            if (upsertRes.error) throw upsertRes.error;
             App.cloudRevision = String(nextRevision);
             localStorage.setItem('ATC_CLOUD_REVISION', App.cloudRevision);
             localStorage.removeItem('ATC_PENDING_CLOUD_SYNC');
@@ -3334,7 +3445,59 @@ const App = {
         manualScoreConfirmText: '此筆成績已完成人工計分，是否要修改計分？',
         scoreSyncTitle: '成績儲存中',
         scoreSyncMessage: '正在將成績與逐題紀錄寫入 Supabase，請勿關閉視窗或重新整理頁面。',
-        scoreSyncNote: '看到考核結果畫面後，才代表 Supabase 已完成寫入。'
+        scoreSyncNote: '看到考核結果畫面後，才代表 Supabase 已完成寫入。',
+        accentColor: '#58a6ff',
+        interfaceDensity: 'normal',
+        panelWidth: 'normal',
+        adminHeaderMode: 'normal',
+        loginPosition: 'center',
+        loginBackgroundMode: 'default',
+        loginBackgroundSize: 'cover',
+        loginBackgroundImage: '',
+        questionEditorLayout: 'normal',
+        questionInputPosition: 'default',
+        imageToolsLayout: 'inline',
+        showButtonEmoji: true,
+        buttonEmojiPosition: 'prefix',
+        loginButtonText: '登入系統',
+        loginButtonEmoji: '',
+        reviewModeButtonText: '已測驗，進入複習模式',
+        reviewModeButtonEmoji: '🔁',
+        instructorEnterButtonText: '請由後台進入教材/測驗',
+        instructorEnterButtonEmoji: '',
+        adminLoginButtonText: '管理員登入',
+        adminLoginButtonEmoji: '⚙️',
+        adminAuthorizedButtonText: '管理員登入 (已授權)',
+        adminAuthorizedButtonEmoji: '⚙️',
+        startQuizButtonText: '開始考核',
+        startQuizButtonEmoji: '📝',
+        startPreparingButtonText: '準備考核中...',
+        startPreparingButtonEmoji: '',
+        quizSubmitButtonEmoji: '',
+        scoreSavingButtonEmoji: '',
+        reviewBackButtonText: '返回修改',
+        reviewBackButtonEmoji: '',
+        reviewConfirmButtonEmoji: '',
+        reviewSavingButtonEmoji: '',
+        resultHomeButtonEmoji: '',
+        viewExitButtonText: '退出',
+        viewExitButtonEmoji: '🚪',
+        backToAdminButtonText: '回到後台',
+        backToAdminButtonEmoji: '',
+        adminCourseTesterButtonText: '進入教材/測驗',
+        adminCourseTesterButtonEmoji: '',
+        adminLogoutButtonText: '管理員登出',
+        adminLogoutButtonEmoji: '',
+        backupExportButtonText: '匯出備份',
+        backupExportButtonEmoji: '',
+        backupImportButtonText: '匯入備份',
+        backupImportButtonEmoji: '',
+        adminSidebarHomeButtonText: '返回首頁',
+        adminSidebarHomeButtonEmoji: '',
+        adminPasswordCancelButtonText: '取消',
+        adminPasswordCancelButtonEmoji: '',
+        adminPasswordSubmitButtonText: '登入後台',
+        adminPasswordSubmitButtonEmoji: ''
     },
     ensureSystemSettings: function() {
         if (!this.state) this.state = {};
@@ -3349,6 +3512,13 @@ const App = {
     setSystemSetting: function(key, value) {
         this.ensureSystemSettings();
         this.state.systemSettings[key] = value;
+    },
+    buttonLabel: function(textKey, emojiKey, fallbackText, fallbackEmoji) {
+        const settings = this.ensureSystemSettings();
+        const text = String(settings[textKey] !== undefined ? settings[textKey] : fallbackText || '').trim();
+        const emoji = String(settings[emojiKey] !== undefined ? settings[emojiKey] : fallbackEmoji || '').trim();
+        if (settings.showButtonEmoji === false || !emoji) return text;
+        return (settings.buttonEmojiPosition === 'suffix') ? `${text} ${emoji}`.trim() : `${emoji} ${text}`.trim();
     },
     applySystemSettings: function() {
         const settings = this.ensureSystemSettings();
@@ -3368,15 +3538,59 @@ const App = {
             quizStatus.style.color = '#8b949e';
         }
         const submitBtn = document.getElementById('quizSubmitBtn');
-        if (submitBtn && !Quiz.submitInProgress) submitBtn.innerText = settings.quizSubmitButtonText || this.DEFAULT_SYSTEM_SETTINGS.quizSubmitButtonText;
+        if (submitBtn && !Quiz.submitInProgress) submitBtn.innerText = this.buttonLabel('quizSubmitButtonText', 'quizSubmitButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.quizSubmitButtonText, this.DEFAULT_SYSTEM_SETTINGS.quizSubmitButtonEmoji);
         const resultHomeBtn = document.getElementById('resultHomeBtn');
-        if (resultHomeBtn) resultHomeBtn.innerText = settings.resultHomeButtonText || this.DEFAULT_SYSTEM_SETTINGS.resultHomeButtonText;
+        if (resultHomeBtn) resultHomeBtn.innerText = this.buttonLabel('resultHomeButtonText', 'resultHomeButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.resultHomeButtonText, this.DEFAULT_SYSTEM_SETTINGS.resultHomeButtonEmoji);
         const overlayTitle = document.getElementById('scoreSyncOverlayTitle');
         if (overlayTitle) overlayTitle.innerText = settings.scoreSyncTitle || this.DEFAULT_SYSTEM_SETTINGS.scoreSyncTitle;
         const overlayMessage = document.getElementById('scoreSyncOverlayMessage');
         if (overlayMessage) overlayMessage.innerText = settings.scoreSyncMessage || this.DEFAULT_SYSTEM_SETTINGS.scoreSyncMessage;
         const overlayNote = document.getElementById('scoreSyncOverlayNote');
         if (overlayNote) overlayNote.innerText = settings.scoreSyncNote || this.DEFAULT_SYSTEM_SETTINGS.scoreSyncNote;
+
+        const setButtonText = (id, textKey, emojiKey, fallbackText, fallbackEmoji) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = this.buttonLabel(textKey, emojiKey, fallbackText, fallbackEmoji);
+        };
+        setButtonText('resultHomeBtn', 'resultHomeButtonText', 'resultHomeButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.resultHomeButtonText, '');
+        setButtonText('viewExitBtn', 'viewExitButtonText', 'viewExitButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.viewExitButtonText, this.DEFAULT_SYSTEM_SETTINGS.viewExitButtonEmoji);
+        setButtonText('adminBackFromViewBtn', 'backToAdminButtonText', 'backToAdminButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.backToAdminButtonText, '');
+        setButtonText('adminQuizBackBtn', 'backToAdminButtonText', 'backToAdminButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.backToAdminButtonText, '');
+        setButtonText('adminQuizExitBtn', 'viewExitButtonText', 'viewExitButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.viewExitButtonText, this.DEFAULT_SYSTEM_SETTINGS.viewExitButtonEmoji);
+        setButtonText('adminCourseTesterBtn', 'adminCourseTesterButtonText', 'adminCourseTesterButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.adminCourseTesterButtonText, '');
+        setButtonText('adminLogoutBtn', 'adminLogoutButtonText', 'adminLogoutButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.adminLogoutButtonText, '');
+        setButtonText('backupExportBtn', 'backupExportButtonText', 'backupExportButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.backupExportButtonText, '');
+        setButtonText('backupImportBtn', 'backupImportButtonText', 'backupImportButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.backupImportButtonText, '');
+        setButtonText('adminSidebarHomeBtn', 'adminSidebarHomeButtonText', 'adminSidebarHomeButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.adminSidebarHomeButtonText, '');
+        setButtonText('adminPasswordCancelBtn', 'adminPasswordCancelButtonText', 'adminPasswordCancelButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.adminPasswordCancelButtonText, '');
+        setButtonText('adminPasswordSubmitBtn', 'adminPasswordSubmitButtonText', 'adminPasswordSubmitButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.adminPasswordSubmitButtonText, '');
+        setButtonText('reviewBackBtn', 'reviewBackButtonText', 'reviewBackButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.reviewBackButtonText, '');
+        if (!Quiz.submitInProgress) setButtonText('reviewConfirmBtn', 'reviewConfirmButtonText', 'reviewConfirmButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.reviewConfirmButtonText, '');
+        if (this.syncUI) this.syncUI();
+
+        const root = document.documentElement;
+        const body = document.body;
+        const accent = settings.accentColor || this.DEFAULT_SYSTEM_SETTINGS.accentColor;
+        if (/^#[0-9a-fA-F]{6}$/.test(accent)) root.style.setProperty('--accent-color', accent);
+        if (body) {
+            body.dataset.density = settings.interfaceDensity || 'normal';
+            body.dataset.panelWidth = settings.panelWidth || 'normal';
+            body.dataset.adminHeader = settings.adminHeaderMode || 'normal';
+            body.dataset.loginPosition = settings.loginPosition || 'center';
+            body.dataset.loginBgMode = settings.loginBackgroundMode || 'default';
+            body.dataset.questionLayout = settings.questionEditorLayout || 'normal';
+            body.dataset.qInputPosition = settings.questionInputPosition || 'default';
+            body.dataset.imageToolsLayout = settings.imageToolsLayout || 'inline';
+        }
+        if (settings.loginBackgroundMode === 'custom' && settings.loginBackgroundImage) {
+            root.style.setProperty('--login-bg-image', `url("${String(settings.loginBackgroundImage).replace(/"/g, '%22')}")`);
+            root.style.setProperty('--login-bg-size', settings.loginBackgroundSize || 'cover');
+            root.style.setProperty('--login-bg-repeat', settings.loginBackgroundSize === 'repeat' ? 'repeat' : 'no-repeat');
+        } else {
+            root.style.removeProperty('--login-bg-image');
+            root.style.removeProperty('--login-bg-size');
+            root.style.removeProperty('--login-bg-repeat');
+        }
     },
     markPendingCloudSync: function() {
         try {
@@ -3867,11 +4081,11 @@ const App = {
             cloudStatus.style.display = this.isInstructor ? 'inline-block' : 'none';
         }
         if(this.isInstructor) {
-            adminBtn.innerText = "⚙️ 管理員登入 (已授權)";
+            adminBtn.innerText = this.buttonLabel('adminAuthorizedButtonText', 'adminAuthorizedButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.adminAuthorizedButtonText, this.DEFAULT_SYSTEM_SETTINGS.adminAuthorizedButtonEmoji);
             adminBtn.classList.replace('btn-outline', 'btn-warning');
             document.querySelectorAll('.badge-instructor').forEach(b => b.classList.remove('hidden'));
         } else {
-            adminBtn.innerText = "⚙️ 管理員登入";
+            adminBtn.innerText = this.buttonLabel('adminLoginButtonText', 'adminLoginButtonEmoji', this.DEFAULT_SYSTEM_SETTINGS.adminLoginButtonText, this.DEFAULT_SYSTEM_SETTINGS.adminLoginButtonEmoji);
             adminBtn.classList.replace('btn-warning', 'btn-outline');
             document.querySelectorAll('.badge-instructor').forEach(b => b.classList.add('hidden'));
         }
@@ -3885,18 +4099,18 @@ const App = {
         const area = document.getElementById('loginBtnArea');
         const course = this.state.courses.find(c => c.id == cid);
         if (this.isInstructor) {
-            area.innerHTML = `<button class="btn btn-warning" style="width:100%" onclick="App.toAdmin()">請由後台進入教材/測驗</button>`;
+            area.innerHTML = `<button class="btn btn-warning" style="width:100%" onclick="App.toAdmin()">${App.buttonLabel('instructorEnterButtonText', 'instructorEnterButtonEmoji', App.DEFAULT_SYSTEM_SETTINGS.instructorEnterButtonText, App.DEFAULT_SYSTEM_SETTINGS.instructorEnterButtonEmoji)}</button>`;
             return;
         }
         if (!name || !course) {
-            area.innerHTML = `<button class="btn btn-primary" style="width:100%" onclick="App.start(false)">登入系統</button>`;
+            area.innerHTML = `<button class="btn btn-primary" style="width:100%" onclick="App.start(false)">${App.buttonLabel('loginButtonText', 'loginButtonEmoji', App.DEFAULT_SYSTEM_SETTINGS.loginButtonText, App.DEFAULT_SYSTEM_SETTINGS.loginButtonEmoji)}</button>`;
             return;
         }
         
         const locked = !this.isInstructor && this.isQuizLocked(name, course.id);
         area.innerHTML = locked
-            ? `<button class="btn btn-warning" style="width:100%" onclick="App.start(true)">已測驗，進入複習模式</button>`
-            : `<button class="btn btn-primary" style="width:100%" onclick="App.start(false)">登入系統</button>`;
+            ? `<button class="btn btn-warning" style="width:100%" onclick="App.start(true)">${App.buttonLabel('reviewModeButtonText', 'reviewModeButtonEmoji', App.DEFAULT_SYSTEM_SETTINGS.reviewModeButtonText, App.DEFAULT_SYSTEM_SETTINGS.reviewModeButtonEmoji)}</button>`
+            : `<button class="btn btn-primary" style="width:100%" onclick="App.start(false)">${App.buttonLabel('loginButtonText', 'loginButtonEmoji', App.DEFAULT_SYSTEM_SETTINGS.loginButtonText, App.DEFAULT_SYSTEM_SETTINGS.loginButtonEmoji)}</button>`;
     },
     start: async function(isReview) {
         if (this.isInstructor) return alert("管理員請由後台「進入教材/測驗」按鈕進入測試。");
@@ -4019,11 +4233,11 @@ const App = {
         const actionHtml = this.isInstructor
             ? `<div style="display:flex; align-items:center; gap:10px; justify-content:flex-end;">
                     <span style="color:#8b949e; font-weight:bold;">管理員測試模式，不紀錄分數</span>
-                    <button id="startQuizBtn" class="btn btn-success" onclick="Quiz.init()">開始考核 📝</button>
+                    <button id="startQuizBtn" class="btn btn-success" onclick="Quiz.init()">${App.buttonLabel('startQuizButtonText', 'startQuizButtonEmoji', App.DEFAULT_SYSTEM_SETTINGS.startQuizButtonText, App.DEFAULT_SYSTEM_SETTINGS.startQuizButtonEmoji)}</button>
                </div>`
             : (locked
                 ? `<div style="color:var(--warning-color); font-weight:bold;">🔒 已完成本科目測驗，請洽管理員解鎖複測。</div>`
-                : `<button id="startQuizBtn" class="btn btn-success" onclick="Quiz.init()">開始考核 📝</button>`);
+                : `<button id="startQuizBtn" class="btn btn-success" onclick="Quiz.init()">${App.buttonLabel('startQuizButtonText', 'startQuizButtonEmoji', App.DEFAULT_SYSTEM_SETTINGS.startQuizButtonText, App.DEFAULT_SYSTEM_SETTINGS.startQuizButtonEmoji)}</button>`);
         document.getElementById('viewActionArea').innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; gap:15px; width:100%;">
                 <div id="materialTabs" style="text-align:left; flex:1; min-width:0;"></div>
@@ -4306,6 +4520,136 @@ const Admin = {
                         <textarea id="settingScoreSyncNote" class="input-field">${Admin.esc(s.scoreSyncNote || '')}</textarea>
                     </div>
                 </div>
+                <div class="settings-card">
+                    <h4>外觀與首頁背景</h4>
+                    <div class="settings-row">
+                        <label>主色調</label>
+                        <div>
+                            <div class="settings-color-row">
+                                <input type="color" id="settingAccentColor" value="${Admin.esc(s.accentColor || App.DEFAULT_SYSTEM_SETTINGS.accentColor)}" oninput="document.getElementById('settingAccentColorText').value=this.value">
+                                <input id="settingAccentColorText" class="input-field" value="${Admin.esc(s.accentColor || App.DEFAULT_SYSTEM_SETTINGS.accentColor)}" placeholder="#58a6ff">
+                            </div>
+                            <div class="settings-help">會影響標題、主要按鈕、重點線條等系統主色。</div>
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <label>整體寬度</label>
+                        <select id="settingPanelWidth" class="select-field">
+                            <option value="normal" ${s.panelWidth === 'normal' || !s.panelWidth ? 'selected' : ''}>標準</option>
+                            <option value="wide" ${s.panelWidth === 'wide' ? 'selected' : ''}>加寬</option>
+                            <option value="narrow" ${s.panelWidth === 'narrow' ? 'selected' : ''}>較窄</option>
+                        </select>
+                    </div>
+                    <div class="settings-row">
+                        <label>介面密度</label>
+                        <select id="settingInterfaceDensity" class="select-field">
+                            <option value="normal" ${s.interfaceDensity === 'normal' || !s.interfaceDensity ? 'selected' : ''}>標準</option>
+                            <option value="compact" ${s.interfaceDensity === 'compact' ? 'selected' : ''}>緊密</option>
+                        </select>
+                    </div>
+                    <div class="settings-row">
+                        <label>首頁登入位置</label>
+                        <select id="settingLoginPosition" class="select-field">
+                            <option value="center" ${s.loginPosition === 'center' || !s.loginPosition ? 'selected' : ''}>置中</option>
+                            <option value="left" ${s.loginPosition === 'left' ? 'selected' : ''}>偏左</option>
+                            <option value="right" ${s.loginPosition === 'right' ? 'selected' : ''}>偏右</option>
+                        </select>
+                    </div>
+                    <div class="settings-row">
+                        <label>首頁背景</label>
+                        <div>
+                            <select id="settingLoginBackgroundMode" class="select-field">
+                                <option value="default" ${s.loginBackgroundMode === 'default' || !s.loginBackgroundMode ? 'selected' : ''}>使用目前塔台照片背景</option>
+                                <option value="gradient" ${s.loginBackgroundMode === 'gradient' ? 'selected' : ''}>漸層背景</option>
+                                <option value="custom" ${s.loginBackgroundMode === 'custom' ? 'selected' : ''}>自訂圖片背景</option>
+                                <option value="none" ${s.loginBackgroundMode === 'none' ? 'selected' : ''}>無背景圖</option>
+                            </select>
+                            <div class="setting-inline-tools" style="margin-top:8px;">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('settingLoginBgFile').click()">上傳背景圖</button>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="Admin.clearSettingBackgroundImage()">移除自訂背景</button>
+                                <select id="settingLoginBackgroundSize" class="select-field" style="width:auto; min-width:140px; margin:0;">
+                                    <option value="cover" ${s.loginBackgroundSize === 'cover' || !s.loginBackgroundSize ? 'selected' : ''}>填滿裁切</option>
+                                    <option value="contain" ${s.loginBackgroundSize === 'contain' ? 'selected' : ''}>完整顯示</option>
+                                    <option value="repeat" ${s.loginBackgroundSize === 'repeat' ? 'selected' : ''}>重複平鋪</option>
+                                </select>
+                                <input type="file" id="settingLoginBgFile" class="hidden" accept="image/*" onchange="Admin.uploadSettingBackgroundImage(this)">
+                                <input type="hidden" id="settingLoginBackgroundImage" value="${Admin.esc(s.loginBackgroundImage || '')}">
+                            </div>
+                            <div id="settingLoginBgPreview" class="settings-preview-box ${s.loginBackgroundImage ? 'has-image' : ''}">${s.loginBackgroundImage ? `<img src="${Admin.esc(s.loginBackgroundImage)}" alt="自訂背景圖" onclick="ImageLightbox.open(this.src)">` : '尚未上傳自訂背景圖'}</div>
+                            <div class="settings-help">背景圖片會壓縮後儲存。若圖片太大，建議使用較小尺寸圖片，避免整個 HTML / Supabase 資料變重。</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-card">
+                    <h4>後台與題庫編輯版面</h4>
+                    <div class="settings-row">
+                        <label>後台頂欄</label>
+                        <select id="settingAdminHeaderMode" class="select-field">
+                            <option value="normal" ${s.adminHeaderMode === 'normal' || !s.adminHeaderMode ? 'selected' : ''}>標準高度</option>
+                            <option value="compact" ${s.adminHeaderMode === 'compact' ? 'selected' : ''}>緊密高度</option>
+                        </select>
+                    </div>
+                    <div class="settings-row">
+                        <label>題庫卡片樣式</label>
+                        <select id="settingQuestionEditorLayout" class="select-field">
+                            <option value="normal" ${s.questionEditorLayout === 'normal' || !s.questionEditorLayout ? 'selected' : ''}>標準</option>
+                            <option value="compact" ${s.questionEditorLayout === 'compact' ? 'selected' : ''}>緊密</option>
+                            <option value="card" ${s.questionEditorLayout === 'card' ? 'selected' : ''}>卡片加強</option>
+                        </select>
+                    </div>
+                    <div class="settings-row">
+                        <label>題目輸入框位置</label>
+                        <select id="settingQuestionInputPosition" class="select-field">
+                            <option value="default" ${s.questionInputPosition === 'default' || !s.questionInputPosition ? 'selected' : ''}>預設：題型/配分下方</option>
+                            <option value="top" ${s.questionInputPosition === 'top' ? 'selected' : ''}>移到每題最上方</option>
+                            <option value="bottom" ${s.questionInputPosition === 'bottom' ? 'selected' : ''}>移到圖片與參考答案下方</option>
+                        </select>
+                        <div class="settings-help">這是安全版位置調整，不會改變題目資料，只改變後台編輯時的排列。</div>
+                    </div>
+                    <div class="settings-row">
+                        <label>圖片按鈕排列</label>
+                        <select id="settingImageToolsLayout" class="select-field">
+                            <option value="inline" ${s.imageToolsLayout === 'inline' || !s.imageToolsLayout ? 'selected' : ''}>並列</option>
+                            <option value="stack" ${s.imageToolsLayout === 'stack' ? 'selected' : ''}>上下排列</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-card">
+                    <h4>按鈕文字與 Emoji</h4>
+                    <div class="settings-row">
+                        <label>Emoji 顯示</label>
+                        <div>
+                            <label class="settings-switch-row"><input type="checkbox" class="row-check" id="settingShowButtonEmoji" ${s.showButtonEmoji === false ? '' : 'checked'}> 顯示按鈕 Emoji</label>
+                            <select id="settingButtonEmojiPosition" class="select-field" style="margin-top:8px;">
+                                <option value="prefix" ${s.buttonEmojiPosition === 'prefix' || !s.buttonEmojiPosition ? 'selected' : ''}>Emoji 在文字前</option>
+                                <option value="suffix" ${s.buttonEmojiPosition === 'suffix' ? 'selected' : ''}>Emoji 在文字後</option>
+                            </select>
+                            <div class="settings-help">不想顯示某個按鈕的 Emoji，可以把該按鈕的 Emoji 欄位清空。</div>
+                        </div>
+                    </div>
+                    ${Admin.renderButtonSettingRow('首頁登入按鈕', 'LoginButton', s.loginButtonText, s.loginButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('已測驗複習按鈕', 'ReviewModeButton', s.reviewModeButtonText, s.reviewModeButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('管理員由後台進入提示', 'InstructorEnterButton', s.instructorEnterButtonText, s.instructorEnterButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('管理員登入按鈕', 'AdminLoginButton', s.adminLoginButtonText, s.adminLoginButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('管理員已授權按鈕', 'AdminAuthorizedButton', s.adminAuthorizedButtonText, s.adminAuthorizedButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('開始考核按鈕', 'StartQuizButton', s.startQuizButtonText, s.startQuizButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('準備考核中按鈕', 'StartPreparingButton', s.startPreparingButtonText, s.startPreparingButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('提交答案按鈕', 'QuizSubmitButton', s.quizSubmitButtonText, s.quizSubmitButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('成績儲存中按鈕', 'ScoreSavingButton', s.scoreSavingButtonText, s.scoreSavingButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('作答檢查返回按鈕', 'ReviewBackButton', s.reviewBackButtonText, s.reviewBackButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('作答檢查確認按鈕', 'ReviewConfirmButton', s.reviewConfirmButtonText, s.reviewConfirmButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('作答檢查儲存中按鈕', 'ReviewSavingButton', s.reviewSavingButtonText, s.reviewSavingButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('結果頁回首頁按鈕', 'ResultHomeButton', s.resultHomeButtonText, s.resultHomeButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('教材頁退出按鈕', 'ViewExitButton', s.viewExitButtonText, s.viewExitButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('回到後台按鈕', 'BackToAdminButton', s.backToAdminButtonText, s.backToAdminButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('後台進入教材/測驗', 'AdminCourseTesterButton', s.adminCourseTesterButtonText, s.adminCourseTesterButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('管理員登出按鈕', 'AdminLogoutButton', s.adminLogoutButtonText, s.adminLogoutButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('後台返回首頁按鈕', 'AdminSidebarHomeButton', s.adminSidebarHomeButtonText, s.adminSidebarHomeButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('密碼視窗取消按鈕', 'AdminPasswordCancelButton', s.adminPasswordCancelButtonText, s.adminPasswordCancelButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('密碼視窗登入按鈕', 'AdminPasswordSubmitButton', s.adminPasswordSubmitButtonText, s.adminPasswordSubmitButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('匯出備份按鈕', 'BackupExportButton', s.backupExportButtonText, s.backupExportButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('匯入備份按鈕', 'BackupImportButton', s.backupImportButtonText, s.backupImportButtonEmoji)}
+                </div>
                 <div class="settings-actions">
                     <button class="btn btn-success" onclick="Admin.saveSystemSettings()">儲存設定</button>
                     <button class="btn btn-outline" onclick="Admin.resetSystemSettings()">還原預設</button>
@@ -4313,8 +4657,52 @@ const Admin = {
             </div>
         `;
     },
+    renderButtonSettingRow: function(label, keyBase, textValue, emojiValue) {
+        const textId = `setting${keyBase}Text`;
+        const emojiId = `setting${keyBase}Emoji`;
+        return `
+            <div class="settings-row">
+                <label>${Admin.esc(label)}</label>
+                <div style="display:grid; grid-template-columns:minmax(0,1fr) 96px; gap:8px;">
+                    <input id="${textId}" class="input-field" value="${Admin.esc(textValue || '')}" placeholder="按鈕文字">
+                    <input id="${emojiId}" class="input-field" value="${Admin.esc(emojiValue || '')}" placeholder="Emoji" maxlength="12">
+                </div>
+            </div>`;
+    },
+    readButtonSettingPair: function(keyBase, defaultTextKey, defaultEmojiKey) {
+        const t = document.getElementById(`setting${keyBase}Text`);
+        const e = document.getElementById(`setting${keyBase}Emoji`);
+        const out = {};
+        out[defaultTextKey] = t ? t.value : App.DEFAULT_SYSTEM_SETTINGS[defaultTextKey];
+        out[defaultEmojiKey] = e ? e.value : App.DEFAULT_SYSTEM_SETTINGS[defaultEmojiKey];
+        return out;
+    },
     readSystemSettingsForm: function() {
-        return {
+        const buttonPairs = Object.assign({},
+            Admin.readButtonSettingPair('LoginButton', 'loginButtonText', 'loginButtonEmoji'),
+            Admin.readButtonSettingPair('ReviewModeButton', 'reviewModeButtonText', 'reviewModeButtonEmoji'),
+            Admin.readButtonSettingPair('InstructorEnterButton', 'instructorEnterButtonText', 'instructorEnterButtonEmoji'),
+            Admin.readButtonSettingPair('AdminLoginButton', 'adminLoginButtonText', 'adminLoginButtonEmoji'),
+            Admin.readButtonSettingPair('AdminAuthorizedButton', 'adminAuthorizedButtonText', 'adminAuthorizedButtonEmoji'),
+            Admin.readButtonSettingPair('StartQuizButton', 'startQuizButtonText', 'startQuizButtonEmoji'),
+            Admin.readButtonSettingPair('StartPreparingButton', 'startPreparingButtonText', 'startPreparingButtonEmoji'),
+            Admin.readButtonSettingPair('QuizSubmitButton', 'quizSubmitButtonText', 'quizSubmitButtonEmoji'),
+            Admin.readButtonSettingPair('ScoreSavingButton', 'scoreSavingButtonText', 'scoreSavingButtonEmoji'),
+            Admin.readButtonSettingPair('ReviewBackButton', 'reviewBackButtonText', 'reviewBackButtonEmoji'),
+            Admin.readButtonSettingPair('ReviewConfirmButton', 'reviewConfirmButtonText', 'reviewConfirmButtonEmoji'),
+            Admin.readButtonSettingPair('ReviewSavingButton', 'reviewSavingButtonText', 'reviewSavingButtonEmoji'),
+            Admin.readButtonSettingPair('ResultHomeButton', 'resultHomeButtonText', 'resultHomeButtonEmoji'),
+            Admin.readButtonSettingPair('ViewExitButton', 'viewExitButtonText', 'viewExitButtonEmoji'),
+            Admin.readButtonSettingPair('BackToAdminButton', 'backToAdminButtonText', 'backToAdminButtonEmoji'),
+            Admin.readButtonSettingPair('AdminCourseTesterButton', 'adminCourseTesterButtonText', 'adminCourseTesterButtonEmoji'),
+            Admin.readButtonSettingPair('AdminLogoutButton', 'adminLogoutButtonText', 'adminLogoutButtonEmoji'),
+            Admin.readButtonSettingPair('BackupExportButton', 'backupExportButtonText', 'backupExportButtonEmoji'),
+            Admin.readButtonSettingPair('BackupImportButton', 'backupImportButtonText', 'backupImportButtonEmoji'),
+            Admin.readButtonSettingPair('AdminSidebarHomeButton', 'adminSidebarHomeButtonText', 'adminSidebarHomeButtonEmoji'),
+            Admin.readButtonSettingPair('AdminPasswordCancelButton', 'adminPasswordCancelButtonText', 'adminPasswordCancelButtonEmoji'),
+            Admin.readButtonSettingPair('AdminPasswordSubmitButton', 'adminPasswordSubmitButtonText', 'adminPasswordSubmitButtonEmoji')
+        );
+        return Object.assign({
             appTitle: (document.getElementById('settingAppTitle') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.appTitle,
             appSubtitle: (document.getElementById('settingAppSubtitle') || {}).value || '',
             showCloudStatus: !!((document.getElementById('settingShowCloudStatus') || {}).checked),
@@ -4328,8 +4716,57 @@ const Admin = {
             manualScoreConfirmText: (document.getElementById('settingManualScoreConfirmText') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.manualScoreConfirmText,
             scoreSyncTitle: (document.getElementById('settingScoreSyncTitle') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.scoreSyncTitle,
             scoreSyncMessage: (document.getElementById('settingScoreSyncMessage') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.scoreSyncMessage,
-            scoreSyncNote: (document.getElementById('settingScoreSyncNote') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.scoreSyncNote
-        };
+            scoreSyncNote: (document.getElementById('settingScoreSyncNote') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.scoreSyncNote,
+            accentColor: (document.getElementById('settingAccentColorText') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.accentColor,
+            interfaceDensity: (document.getElementById('settingInterfaceDensity') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.interfaceDensity,
+            panelWidth: (document.getElementById('settingPanelWidth') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.panelWidth,
+            adminHeaderMode: (document.getElementById('settingAdminHeaderMode') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.adminHeaderMode,
+            loginPosition: (document.getElementById('settingLoginPosition') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.loginPosition,
+            loginBackgroundMode: (document.getElementById('settingLoginBackgroundMode') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.loginBackgroundMode,
+            loginBackgroundSize: (document.getElementById('settingLoginBackgroundSize') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.loginBackgroundSize,
+            loginBackgroundImage: (document.getElementById('settingLoginBackgroundImage') || {}).value || '',
+            questionEditorLayout: (document.getElementById('settingQuestionEditorLayout') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.questionEditorLayout,
+            questionInputPosition: (document.getElementById('settingQuestionInputPosition') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.questionInputPosition,
+            imageToolsLayout: (document.getElementById('settingImageToolsLayout') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.imageToolsLayout,
+            showButtonEmoji: !!((document.getElementById('settingShowButtonEmoji') || {}).checked),
+            buttonEmojiPosition: (document.getElementById('settingButtonEmojiPosition') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.buttonEmojiPosition
+        }, buttonPairs);
+    },
+    uploadSettingBackgroundImage: async function(input) {
+        const file = input && input.files && input.files[0] ? input.files[0] : null;
+        if (!file) return;
+        if (!/^image\//.test(file.type || '')) {
+            input.value = '';
+            return alert('請上傳圖片檔。');
+        }
+        try {
+            const rawDataUrl = await Admin.readFileAsDataURL(file);
+            const dataUrl = await Admin.compressImageDataUrl(rawDataUrl, 1400, 0.72);
+            const hidden = document.getElementById('settingLoginBackgroundImage');
+            const preview = document.getElementById('settingLoginBgPreview');
+            const mode = document.getElementById('settingLoginBackgroundMode');
+            if (hidden) hidden.value = dataUrl;
+            if (mode) mode.value = 'custom';
+            if (preview) {
+                preview.classList.add('has-image');
+                preview.innerHTML = `<img src="${dataUrl}" alt="自訂背景圖" onclick="ImageLightbox.open(this.src)">`;
+            }
+            input.value = '';
+            Backend.setStatus('已加入自訂背景圖，請按「儲存設定」寫入 Supabase', 'var(--warning-color)');
+        } catch (err) {
+            console.error('uploadSettingBackgroundImage failed:', err);
+            alert('背景圖片讀取失敗，請改用其他圖片檔。');
+        }
+    },
+    clearSettingBackgroundImage: function() {
+        const hidden = document.getElementById('settingLoginBackgroundImage');
+        const preview = document.getElementById('settingLoginBgPreview');
+        if (hidden) hidden.value = '';
+        if (preview) {
+            preview.classList.remove('has-image');
+            preview.innerHTML = '尚未上傳自訂背景圖';
+        }
+        Backend.setStatus('已移除自訂背景圖，請按「儲存設定」寫入 Supabase', 'var(--warning-color)');
     },
     saveSystemSettings: async function() {
         App.state.systemSettings = Object.assign({}, App.DEFAULT_SYSTEM_SETTINGS, Admin.readSystemSettingsForm());
@@ -4339,7 +4776,7 @@ const Admin = {
         if (Admin.renderSettings) Admin.renderSettings();
     },
     resetSystemSettings: async function() {
-        if (!confirm('確定要將系統設定還原為預設文字嗎？')) return;
+        if (!confirm('確定要將系統設定還原為預設值嗎？')) return;
         App.state.systemSettings = Object.assign({}, App.DEFAULT_SYSTEM_SETTINGS);
         App.applySystemSettings();
         const ok = await App.saveWithNotice('系統設定已還原並寫入 Supabase', '系統設定已還原於本機，但 Supabase 寫入失敗');
@@ -6136,12 +6573,12 @@ const Quiz = {
         const startBtn = document.getElementById('startQuizBtn');
         if (startBtn) {
             startBtn.disabled = true;
-            startBtn.innerText = '準備考核中...';
+            startBtn.innerText = App.buttonLabel('startPreparingButtonText', 'startPreparingButtonEmoji', App.DEFAULT_SYSTEM_SETTINGS.startPreparingButtonText, App.DEFAULT_SYSTEM_SETTINGS.startPreparingButtonEmoji);
         }
         const resetStartButton = function() {
             if (startBtn) {
                 startBtn.disabled = false;
-                startBtn.innerText = '開始考核 📝';
+                startBtn.innerText = App.buttonLabel('startQuizButtonText', 'startQuizButtonEmoji', App.DEFAULT_SYSTEM_SETTINGS.startQuizButtonText, App.DEFAULT_SYSTEM_SETTINGS.startQuizButtonEmoji);
             }
         };
         const resultArea = document.getElementById('resultAnswerArea');
@@ -6149,7 +6586,7 @@ const Quiz = {
         const quizStatus = document.getElementById('quizCompletionStatus');
         if (quizStatus) { quizStatus.dataset.dynamicStatus = 'default'; quizStatus.innerText = App.getSystemSetting('quizCompletionText') || '送出時會檢查未作答題目。'; quizStatus.style.color = '#8b949e'; }
         const submitBtn = document.getElementById('quizSubmitBtn');
-        if (submitBtn) submitBtn.innerText = App.getSystemSetting('quizSubmitButtonText') || '提交考核答案';
+        if (submitBtn) submitBtn.innerText = App.buttonLabel('quizSubmitButtonText', 'quizSubmitButtonEmoji', App.DEFAULT_SYSTEM_SETTINGS.quizSubmitButtonText, App.DEFAULT_SYSTEM_SETTINGS.quizSubmitButtonEmoji);
         if (!App.isInstructor && App.isQuizLocked(App.user, App.activeCourse.id)) { resetStartButton(); return alert("本科目已完成測驗，需由管理員於「測驗成績查詢」解鎖後才能再次測驗。"); }
         if(!App.activeCourse.questions.length) { resetStartButton(); return alert("本科目尚無考題。"); }
         if (!App.isInstructor) {
@@ -6425,11 +6862,11 @@ const Quiz = {
         const reviewBackBtn = document.getElementById('reviewBackBtn');
         if (btn) {
             btn.disabled = !!isSubmitting;
-            btn.innerText = isSubmitting ? (App.getSystemSetting('scoreSavingButtonText') || '成績儲存中...') : (App.getSystemSetting('quizSubmitButtonText') || '提交考核答案');
+            btn.innerText = isSubmitting ? App.buttonLabel('scoreSavingButtonText', 'scoreSavingButtonEmoji', App.DEFAULT_SYSTEM_SETTINGS.scoreSavingButtonText, App.DEFAULT_SYSTEM_SETTINGS.scoreSavingButtonEmoji) : App.buttonLabel('quizSubmitButtonText', 'quizSubmitButtonEmoji', App.DEFAULT_SYSTEM_SETTINGS.quizSubmitButtonText, App.DEFAULT_SYSTEM_SETTINGS.quizSubmitButtonEmoji);
         }
         if (reviewConfirmBtn) {
             reviewConfirmBtn.disabled = !!isSubmitting;
-            reviewConfirmBtn.innerText = isSubmitting ? (App.getSystemSetting('reviewSavingButtonText') || '儲存中...') : (App.getSystemSetting('reviewConfirmButtonText') || '確認送出');
+            reviewConfirmBtn.innerText = isSubmitting ? App.buttonLabel('reviewSavingButtonText', 'reviewSavingButtonEmoji', App.DEFAULT_SYSTEM_SETTINGS.reviewSavingButtonText, App.DEFAULT_SYSTEM_SETTINGS.reviewSavingButtonEmoji) : App.buttonLabel('reviewConfirmButtonText', 'reviewConfirmButtonEmoji', App.DEFAULT_SYSTEM_SETTINGS.reviewConfirmButtonText, App.DEFAULT_SYSTEM_SETTINGS.reviewConfirmButtonEmoji);
         }
         if (reviewBackBtn) reviewBackBtn.disabled = !!isSubmitting;
         if (status && message) {
