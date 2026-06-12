@@ -3045,7 +3045,12 @@ const Backend = {
             if (recRes.error) throw recRes.error;
             const records = (recRes.data || []).map(row => this.recordFromRow(row));
             const courses = Array.isArray(settings.courses) ? settings.courses : [];
-            const quizUnlocks = settings.quiz_unlocks && typeof settings.quiz_unlocks === 'object' ? settings.quiz_unlocks : {};
+            const quizUnlocksRaw = settings.quiz_unlocks && typeof settings.quiz_unlocks === 'object' ? settings.quiz_unlocks : {};
+            const systemSettingsFromColumn = settings.system_settings && typeof settings.system_settings === 'object' ? settings.system_settings : {};
+            const systemSettingsFromFallback = quizUnlocksRaw.__system_settings && typeof quizUnlocksRaw.__system_settings === 'object' ? quizUnlocksRaw.__system_settings : {};
+            const systemSettings = Object.keys(systemSettingsFromColumn || {}).length ? systemSettingsFromColumn : systemSettingsFromFallback;
+            const quizUnlocks = Object.assign({}, quizUnlocksRaw);
+            delete quizUnlocks.__system_settings;
             App.cloudRevision = String(settings.revision || 1);
             localStorage.setItem('ATC_CLOUD_REVISION', App.cloudRevision);
             App.state = {
@@ -3056,7 +3061,7 @@ const Backend = {
                 quizLocks: this.buildLocks(records, quizUnlocks, courses),
                 quizUnlocks: quizUnlocks,
                 adminPw: settings.admin_pw || 'rctp3023',
-                systemSettings: settings.system_settings && typeof settings.system_settings === 'object' ? settings.system_settings : {}
+                systemSettings: systemSettings || {}
             };
             App.state.courses.forEach(c => {
                 const n = Number(c.passScore);
@@ -3089,12 +3094,18 @@ const Backend = {
             const client = this.client();
             const settings = await this.getSettings();
             const nextRevision = Number(settings.revision || 1) + 1;
+            const systemSettingsPayload = (state && state.systemSettings && typeof state.systemSettings === 'object') ? state.systemSettings : (settings.system_settings || {});
+            const quizUnlocksPayload = Object.assign(
+                {},
+                (state && state.quizUnlocks && typeof state.quizUnlocks === 'object') ? state.quizUnlocks : (settings.quiz_unlocks || {})
+            );
+            quizUnlocksPayload.__system_settings = systemSettingsPayload;
             const payload = {
                 id: true,
                 courses: Array.isArray(state && state.courses) ? state.courses : [],
                 admin_pw: (state && state.adminPw) ? String(state.adminPw) : (settings.admin_pw || 'rctp3023'),
-                quiz_unlocks: (state && state.quizUnlocks && typeof state.quizUnlocks === 'object') ? state.quizUnlocks : (settings.quiz_unlocks || {}),
-                system_settings: (state && state.systemSettings && typeof state.systemSettings === 'object') ? state.systemSettings : (settings.system_settings || {}),
+                quiz_unlocks: quizUnlocksPayload,
+                system_settings: systemSettingsPayload,
                 revision: nextRevision
             };
             let upsertRes = await client.from('atc_app_settings').upsert(payload, { onConflict: 'id' });
@@ -5227,10 +5238,12 @@ const Admin = {
     },
     downloadTemplate: function() {
         const rows = [
-            ['題目 (Question)', '選項列表 (以半形逗號分隔)', '正確答案索引 (1-4)', '備註說明'],
-            ['範例：請在此輸入題目內容', '選項一,選項二,選項三,選項四', '1', '此欄可留空']
+            ['題型 (choice/truefalse/short)', '題目 (Question)', '選項列表 (選擇題用半形逗號分隔；是非題/簡答可留空)', '正確答案索引 (選擇題1-4；是非題1=是/2=非；簡答可留空)', '簡答題參考答案', '配分(可留空)', '備註說明'],
+            ['choice', '範例：選擇題題目', '選項一,選項二,選項三,選項四', '1', '', '', '選擇題範例'],
+            ['truefalse', '範例：是非題題目', '', '1', '', '', '1=是，2=非'],
+            ['short', '範例：簡答題題目', '', '', '此欄可填批改用參考答案', '', '簡答題範例']
         ];
-        const csv = rows.map((row, rowIndex) => row.map((v, colIndex) => rowIndex > 0 && colIndex === 1 ? Admin.csvTextCell(v) : Admin.csvCell(v)).join(',')).join('\n');
+        const csv = rows.map(row => row.map(v => Admin.csvCell(v)).join(',')).join('\n');
         const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a"); link.href = URL.createObjectURL(blob);
         link.setAttribute("download", "題庫匯入範本.csv"); document.body.appendChild(link); link.click(); document.body.removeChild(link);
@@ -5245,25 +5258,30 @@ const Admin = {
         if (!questions.length) return alert("本科目目前沒有題目可匯出。");
 
         const rows = [
-            ['題目 (Question)', '選項列表 (以半形逗號分隔)', '正確答案索引 (1-4)', '備註說明']
+            ['題型 (choice/truefalse/short)', '題目 (Question)', '選項列表 (選擇題用半形逗號分隔；是非題/簡答可留空)', '正確答案索引 (選擇題1-4；是非題1=是/2=非；簡答可留空)', '簡答題參考答案', '配分(可留空)', '備註說明']
         ];
 
         questions.forEach((q, index) => {
-            const opts = Array.isArray(q.o) ? q.o : [];
+            const type = (q.type || 'choice') === 'short' ? 'short' : ((q.type || 'choice') === 'truefalse' ? 'truefalse' : 'choice');
+            let opts = Array.isArray(q.o) ? q.o : [];
+            if (type === 'truefalse' || type === 'short') opts = [];
             rows.push([
+                type,
                 q.q || '',
                 opts.join(','),
-                Number.isInteger(parseInt(q.a, 10)) ? String(parseInt(q.a, 10) + 1) : '1',
+                type === 'short' ? '' : (Number.isInteger(parseInt(q.a, 10)) ? String(parseInt(q.a, 10) + 1) : '1'),
+                q.referenceAnswer || q.correctAnswerText || '',
+                q.points === null || q.points === undefined || q.points === '' ? '' : String(q.points),
                 `Q${index + 1}`
             ]);
         });
 
-        const csv = rows.map((row, rowIndex) => row.map((v, colIndex) => rowIndex > 0 && colIndex === 1 ? Admin.csvTextCell(v) : Admin.csvCell(v)).join(',')).join('\n');
+        const csv = rows.map(row => row.map(v => Admin.csvCell(v)).join(',')).join('\n');
         const safeTitle = String(course.title || '題庫')
             .replace(/[\\/:*?"<>|]/g, '_')
             .replace(/\s+/g, '_')
             .slice(0, 40);
-        const stamp = DateUtil.format().replace(/[\/:\s]/g, '');
+        const stamp = DateUtil.format().replace(/[\/\:\s]/g, '');
         const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
@@ -5909,39 +5927,83 @@ const Admin = {
             dataRows.forEach((c) => {
                 if(!c || c.every(v => String(v || '').trim() === '')) return;
 
+                let type = 'choice';
                 let q = '';
                 let opts = [];
                 let answerNo = NaN;
+                let referenceAnswer = '';
+                let points = '';
 
-                // 新版範本格式：題目、選項列表（半形逗號分隔）、正確答案索引、備註。
-                if(c.length >= 3 && String(c[1] || '').includes(',')) {
+                const first = String(c[0] || '').trim().toLowerCase();
+                const hasTypeColumn = ['choice', 'select', '選擇題', 'truefalse', 'true/false', '是非題', 'tf', 'short', 'shortanswer', '簡答題'].includes(first);
+
+                if (hasTypeColumn) {
+                    if (['truefalse', 'true/false', '是非題', 'tf'].includes(first)) type = 'truefalse';
+                    else if (['short', 'shortanswer', '簡答題'].includes(first)) type = 'short';
+                    else type = 'choice';
+
+                    q = String(c[1] || '').trim();
+                    const optionCell = String(c[2] || '').trim();
+                    answerNo = parseInt(c[3], 10);
+                    referenceAnswer = String(c[4] || '').trim();
+                    points = String(c[5] || '').trim();
+
+                    if (type === 'choice') {
+                        opts = optionCell ? optionCell.split(',').map(s => s.trim()).filter(Boolean) : [];
+                    } else if (type === 'truefalse') {
+                        opts = ['是', '非'];
+                    } else {
+                        opts = [];
+                    }
+                }
+                else if(c.length >= 3 && String(c[1] || '').includes(',')) {
+                    type = 'choice';
                     q = String(c[0] || '').trim();
                     opts = String(c[1] || '').split(',').map(s => s.trim()).filter(Boolean);
                     answerNo = parseInt(c[2], 10);
                 }
-                // 舊版格式相容：題目、選項1、選項2、選項3、選項4、正確答案序號。
                 else if(c.length >= 6) {
+                    type = 'choice';
                     q = String(c[0] || '').trim();
                     opts = [c[1], c[2], c[3], c[4]].map(s => String(s || '').trim());
                     answerNo = parseInt(c[5], 10);
                 }
 
-                if(!q || opts.length !== 4 || opts.some(o => !o) || !Number.isInteger(answerNo) || answerNo < 1 || answerNo > 4) {
+                if (!q) {
                     skipped++;
                     return;
                 }
 
-                App.state.courses[ci].questions.push({
-                    q: q,
-                    o: opts,
-                    a: answerNo - 1
-                });
-                imported++;
+                let item = null;
+                if (type === 'choice') {
+                    if(opts.length !== 4 || opts.some(o => !o) || !Number.isInteger(answerNo) || answerNo < 1 || answerNo > 4) {
+                        skipped++;
+                        return;
+                    }
+                    item = { type: 'choice', q: q, o: opts, a: answerNo - 1 };
+                } else if (type === 'truefalse') {
+                    if(!Number.isInteger(answerNo) || answerNo < 1 || answerNo > 2) {
+                        skipped++;
+                        return;
+                    }
+                    item = { type: 'truefalse', q: q, o: ['是', '非'], a: answerNo - 1 };
+                } else if (type === 'short') {
+                    item = { type: 'short', q: q, o: [], a: 0, referenceAnswer: referenceAnswer };
+                }
+
+                if (item) {
+                    const pointNo = Number(points);
+                    if (points !== '' && Number.isFinite(pointNo) && pointNo >= 0) item.points = pointNo;
+                    App.state.courses[ci].questions.push(item);
+                    imported++;
+                } else {
+                    skipped++;
+                }
             });
             Admin.renderEditor();
             e.target.value = '';
             if(skipped > 0) {
-                alert(`匯入完成：成功 ${imported} 題，略過 ${skipped} 題。\n新版格式請使用：題目、選項列表（以半形逗號分隔）、正確答案索引 1～4。`);
+                alert(`匯入完成：成功 ${imported} 題，略過 ${skipped} 題。\n新版格式可使用：題型、題目、選項列表、正確答案索引、簡答題參考答案、配分、備註。`);
             } else {
                 alert(`匯入成功：共 ${imported} 題。`);
             }
