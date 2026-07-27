@@ -515,18 +515,25 @@
         }
 
         .result-answer-area {
-            width: min(900px, 100%);
-            max-height: 46vh;
-            overflow-y: auto;
-            margin: 18px auto 24px;
-            padding: 12px;
-            background: #0d1117;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            text-align: left;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(88,166,255,0.75) #0d1117;
-        }
+    width: min(900px, 100%);
+    max-height: min(45vh, 360px);
+    overflow-y: auto;
+    margin: 18px auto 18px;
+    padding: 12px;
+    background: #0d1117;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    text-align: left;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(88,166,255,0.75) #0d1117;
+}
+
+@media (max-width: 760px) {
+    .result-answer-area {
+        max-height: 38vh;
+        margin-bottom: 14px;
+    }
+}
         .result-answer-area::-webkit-scrollbar { width: 6px; }
         .result-answer-area::-webkit-scrollbar-track { background: #0d1117; }
         .result-answer-area::-webkit-scrollbar-thumb { background: rgba(88,166,255,0.65); border-radius: 999px; }
@@ -2818,6 +2825,7 @@ body.question-sort-active .editor-helper {
                     <h1 id="appTitleText" style="margin-bottom:6px;">ATC 訓練管理系統</h1>
                     <div id="appSubtitleText" style="color:#ffffff; font-size:16px; font-weight:900; letter-spacing:0.5px; margin-bottom:6px; text-shadow:0 2px 4px rgba(0,0,0,0.72), 0 0 18px rgba(0,0,0,0.55), 0 0 2px rgba(255,255,255,0.35);">RCTP 臺北機場管制臺</div>
                     <div id="cloudStatus" style="display:none; font-size:12px; color:#8b949e; margin-bottom:10px; background:transparent; background-color:transparent; border:0; box-shadow:none; padding:0; border-radius:0;">本機測試模式：尚未連線 Supabase</div>
+                    
                 </div>
                 <div style="background:#161b22; padding:30px; border-radius:12px; border:1px solid var(--border-color);">
                     <label>使用者名稱</label>
@@ -7290,8 +7298,7 @@ const Quiz = {
                         <div class="result-answer-question">Q${i + 1}：${Admin.esc(q.q)} <span class="manual-score-badge">人工計分</span></div>
                         ${getQuestionDisplayImage(q, App.activeCourse) ? `<div class="result-question-image"><img src="${getQuestionDisplayImage(q, App.activeCourse)}" alt="題目參考圖片" onclick="ImageLightbox.open(this.src)"></div>` : ''}
                         <div class="result-short-answer-label">你的簡答作答</div><div class="result-short-answer-box">${Admin.esc(String(userIndex || '（未填寫）'))}</div>
-                        <div class="result-short-answer-label">參考答案</div>
-                        <div class="result-short-answer-box" style="color:var(--success-color); font-weight:700;">${Admin.esc(String(q.referenceAnswer || q.correctAnswerText || '（未設定）'))}</div>
+                        <div class="result-short-answer-label">參考答案</div><div class="result-short-answer-box" style="color:var(--success-color); font-weight:700;">${Admin.esc(String(q.referenceAnswer || q.correctAnswerText || '（未設定）'))}</div>
                     </div>`;
                 }
                 const correctIndex = q.a;
