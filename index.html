@@ -2890,6 +2890,20 @@ body.question-sort-active .editor-helper {
 
 
 
+
+        /* V006：人工給分輸入框移除數字增減箭頭 */
+        #manualScoreInput {
+            appearance: textfield !important;
+            -moz-appearance: textfield !important;
+        }
+        #manualScoreInput::-webkit-inner-spin-button,
+        #manualScoreInput::-webkit-outer-spin-button {
+            -webkit-appearance: none !important;
+            appearance: none !important;
+            margin: 0 !important;
+            display: none !important;
+        }
+
         /* V005：修正人工評分視窗長文字遭父層裁切 */
         #manualScoreOverlay .manual-score-modal {
             display: flex !important;
@@ -3086,7 +3100,7 @@ body.question-sort-active .editor-helper {
         <div class="review-modal-footer manual-score-footer">
             <div class="manual-score-input-wrap">
                 <label for="manualScoreInput" id="manualScoreLimitText" style="font-size:13px; color:#8b949e; font-weight:700;">給分</label>
-                <input type="number" id="manualScoreInput" class="input-field" min="0" step="0.1" inputmode="decimal" onkeydown="Admin.handleManualScoreKey(event)">
+                <input type="number" id="manualScoreInput" class="input-field no-spinner" min="0" step="0.1" inputmode="decimal" onkeydown="Admin.handleManualScoreKey(event)">
             </div>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <button type="button" class="btn btn-outline" onclick="Admin.cancelManualScoreDialog()">取消計分</button>
