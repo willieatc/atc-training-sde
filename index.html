@@ -2936,6 +2936,13 @@ body.question-sort-active .editor-helper {
             }
         }
 
+
+/* 成績 CSV／JSON 匯出選單 */
+.score-export-dropdown { position:relative; display:inline-flex; }
+.score-export-options { display:none; position:absolute; z-index:125; top:calc(100% + 6px); left:0; min-width:240px; padding:8px; background:#21262d; border:1px solid var(--border-color); border-radius:10px; box-shadow:0 10px 28px #0008; flex-direction:column; gap:6px; }
+.score-export-dropdown.open .score-export-options { display:flex; }
+.score-export-options .btn { white-space:normal; text-align:left; justify-content:flex-start; }
+@media (max-width:760px) { .score-export-options { left:0; min-width:220px; max-width:90vw; } }
 </style>
 </head>
 <body oncontextmenu="return false;"> 
@@ -6949,6 +6956,98 @@ const Admin = {
             return matchU && matchC;
         }).slice().reverse();
     },
+    exportScoreJson: function() {
+        // 完整成績 JSON：刻意不套用目前畫面搜尋/分頁，以利未來移轉與完整還原。
+        const records = Array.isArray(App.state.records) ? App.state.records : [];
+        if (!records.length) return alert('目前沒有可匯出的成績紀錄。');
+        if (!confirm(`將匯出全部 ${records.length} 筆成績及逐題作答紀錄（JSON）。\n包含員工識別及答題內容，請妥善保存。\n\n確定下載？`)) return;
+        const payload = {
+            format: 'ATC_SCORE_RECORDS', version: 1,
+            exportedAt: new Date().toISOString(),
+            recordCount: records.length,
+            records: records.map(r => Backend.normalizeRecordForDb(r))
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json;charset=utf-8'});
+        const now = new Date();
+        const stamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `ATC_完整成績及作答紀錄_${stamp}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    },
+    importScoreJson: async function(event) {
+        const input = event && event.target;
+        const file = input && input.files && input.files[0];
+        if (!file) return;
+        try {
+            if (!Backend.enabled() || !App.cloudReady) throw new Error('Supabase 尚未完成連線，請確認雲端連線狀態後再匯入。');
+            const rawText = await file.text();
+            const data = JSON.parse(rawText);
+            if (!data || data.format !== 'ATC_SCORE_RECORDS' || data.version !== 1 || !Array.isArray(data.records)) {
+                throw new Error('格式不符。請選擇由「匯出成績 → 完整 JSON」產生的備份檔。');
+            }
+            if (data.records.length > 100000) throw new Error('檔案紀錄數量異常，已取消匯入。');
+            const existingIds = new Set(App.state.records.map(r => String(r.recordId || r.id || '')));
+            const incomingIds = new Set();
+            const newRecords = [];
+            let skipped = 0, invalid = 0;
+            for (const entry of data.records) {
+                if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {invalid++;continue;}
+                // 僅接受匯出時已存在的紀錄 ID；不為無識別碼資料產生新 ID，以免重複匯入。
+                const id = String(entry.recordId || entry.id || '').trim();
+                const user = String(entry.u || entry.userCode || '').trim();
+                const courseId = String(entry.cid || entry.courseId || '').trim();
+                const courseName = String(entry.c || entry.courseTitle || '').trim();
+                const score = Number(entry.s ?? entry.score);
+                if (!id || !user || !courseId || !courseName || !Number.isFinite(score) ||
+                    (entry.answerDetails !== undefined && !Array.isArray(entry.answerDetails))) {invalid++;continue;}
+                if (existingIds.has(id) || incomingIds.has(id)) {skipped++;continue;}
+                incomingIds.add(id);
+                const normalized = Backend.normalizeRecordForDb(entry);
+                normalized.recordId = id;
+                normalized.id = id;
+                newRecords.push(normalized);
+            }
+            if (invalid) throw new Error(`檔案中有 ${invalid} 筆資料缺少必要欄位或結構不正確；為避免部分資料遺漏，本次不匯入。`);
+            if (!newRecords.length) return alert(`沒有需要新增的紀錄。\n原有／重複紀錄：${skipped} 筆。`);
+            const preview = `來源檔案：${file.name}\n原始紀錄：${data.records.length} 筆\n將新增：${newRecords.length} 筆\n重複而略過：${skipped} 筆\n\n僅新增成績與逐題作答，不覆蓋原有成績、教材、人員或系統設定。\n成功後會取消相關人員／科目的解鎖狀態（恢復已測驗鎖定）。\n\n確定匯入 Supabase？`;
+            if (!confirm(preview)) return;
+            const client = Backend.client();
+            const perBatch = 100;
+            let inserted = 0;
+            try {
+                for (let offset = 0; offset < newRecords.length; offset += perBatch) {
+                    const chunk = newRecords.slice(offset, offset + perBatch);
+                    // insert 而非 upsert：資料庫已有相同 ID 時拒絕覆蓋。
+                    const res = await client.from('atc_quiz_records').insert(chunk.map(r => Backend.dbRowFromRecord(r)));
+                    if (res.error) throw res.error;
+                    inserted += chunk.length;
+                }
+                const settings = await Backend.getSettings();
+                const unlocks = Object.assign({}, settings.quiz_unlocks || {});
+                for (const r of newRecords) delete unlocks[`${r.u}__${r.cid}`];
+                const save = await client.from('atc_app_settings')
+                    .update({quiz_unlocks: unlocks, revision: Number(settings.revision || 1) + 1})
+                    .eq('id', true);
+                if (save.error) throw save.error;
+            } catch (err) {
+                await Backend.loadState();
+                Admin.renderScores();
+                throw new Error(`資料匯入未全部完成：目前已新增 ${inserted} 筆。請檢查雲端資料後再匯入剩餘紀錄。詳細原因：${err.message || err}`);
+            }
+            await Backend.loadState();
+            Admin.renderScores();
+            App.updateLoginStatus();
+            alert(`匯入完成！\n新增 ${inserted} 筆成績（含逐題紀錄）；略過 ${skipped} 筆重複資料。\n已更新對應測驗鎖定狀態。`);
+        } catch (err) {
+            alert(`匯入成績紀錄失敗：${err.message || err}`);
+        } finally {
+            if (input) input.value = '';
+        }
+    },
     exportScoreRecords: function() {
         const items = this.getFilteredScoreItems();
         if (!items.length) return alert('目前篩選條件下沒有可匯出的測驗成績。');
@@ -7132,10 +7231,16 @@ const Admin = {
             <div class="sticky-header">
                 <h3>🔍 測驗成績查詢</h3>
                 <div class="header-actions">
-                    <button class="btn btn-success btn-sm" onclick="Admin.exportScoreRecords()">📤 匯出成績</button>
-                    <button class="btn btn-primary btn-sm" onclick="document.getElementById('legacyScoreImportFile').click()">📥 匯入舊成績</button>
-                    <input type="file" id="legacyScoreImportFile" class="hidden" accept=".csv" onchange="Admin.importLegacyScores(event)">
-                    <button class="btn btn-answer-export btn-sm" onclick="Admin.exportAnswerDetails()">匯出逐題紀錄</button>
+                    <div class="score-export-dropdown">
+                        <button type="button" class="btn btn-success btn-sm" onclick="this.parentElement.classList.toggle('open')">📤 匯出成績 ▾</button>
+                        <div class="score-export-options">
+                            <button type="button" class="btn btn-outline btn-sm" onclick="Admin.exportScoreRecords();this.closest('.score-export-dropdown').classList.remove('open')">成績 CSV（目前篩選）</button>
+                            <button type="button" class="btn btn-outline btn-sm" onclick="Admin.exportScoreJson();this.closest('.score-export-dropdown').classList.remove('open')">完整成績＋作答 JSON（全部）</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-answer-export btn-sm" onclick="Admin.exportAnswerDetails()">📤 匯出作答紀錄</button>
+                    <button class="btn btn-primary btn-sm" onclick="document.getElementById('scoreJsonImportFile').click()">📥 匯入成績紀錄</button>
+                    <input type="file" id="scoreJsonImportFile" class="hidden" accept=".json,application/json" onchange="Admin.importScoreJson(event)">
                 </div>
             </div>
             <div class="filter-group score-filter-compact">
