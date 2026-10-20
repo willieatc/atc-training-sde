@@ -7060,9 +7060,12 @@ const Admin = {
             const rawText = await file.text();
             const data = JSON.parse(rawText);
             if (!data || data.format !== 'ATC_SCORE_RECORDS' || data.version !== 1 || !Array.isArray(data.records)) {
-                throw new Error('格式不符。請選擇由「匯出成績 → 完整 JSON」產生的備份檔。');
+                throw new Error('格式不符。請選擇「匯出資料 → 匯出完整成績及作答紀錄（JSON）」產生的檔案。');
             }
             if (data.records.length > 100000) throw new Error('檔案紀錄數量異常，已取消匯入。');
+            if (!Number.isInteger(data.recordCount) || data.recordCount !== data.records.length) {
+                throw new Error('成績 JSON 的紀錄總數與內容不符，可能檔案不完整；已取消匯入。');
+            }
             const existingIds = new Set(App.state.records.map(r => String(r.recordId || r.id || '')));
             const incomingIds = new Set();
             const newRecords = [];
@@ -7086,7 +7089,7 @@ const Admin = {
             }
             if (invalid) throw new Error(`檔案中有 ${invalid} 筆資料缺少必要欄位或結構不正確；為避免部分資料遺漏，本次不匯入。`);
             if (!newRecords.length) return alert(`沒有需要新增的紀錄。\n原有／重複紀錄：${skipped} 筆。`);
-            const preview = `來源檔案：${file.name}\n原始紀錄：${data.records.length} 筆\n將新增：${newRecords.length} 筆\n重複而略過：${skipped} 筆\n\n僅新增成績與逐題作答，不覆蓋原有成績、教材、人員或系統設定。\n成功後會取消相關人員／科目的解鎖狀態（恢復已測驗鎖定）。\n\n確定匯入 Supabase？`;
+            const preview = `來源檔案：${file.name}\n原始紀錄：${data.records.length} 筆\n將新增：${newRecords.length} 筆\n重複而略過：${skipped} 筆\n\n僅新增成績與逐題作答，不覆蓋原有成績、教材、人員或系統設定。\n成功後會更新相關人員／科目的測驗鎖定狀態；匯入過程請勿關閉頁面。\n\n確定匯入 Supabase？`;
             if (!confirm(preview)) return;
             const client = Backend.client();
             const perBatch = 100;
@@ -7099,13 +7102,21 @@ const Admin = {
                     if (res.error) throw res.error;
                     inserted += chunk.length;
                 }
-                const settings = await Backend.getSettings();
-                const unlocks = Object.assign({}, settings.quiz_unlocks || {});
-                for (const r of newRecords) delete unlocks[`${r.u}__${r.cid}`];
-                const save = await client.from('atc_app_settings')
-                    .update({quiz_unlocks: unlocks, revision: Number(settings.revision || 1) + 1})
-                    .eq('id', true);
-                if (save.error) throw save.error;
+                // 帶版本檢查更新鎖定：不把其他裝置剛儲存的解鎖資料覆寫。
+                let lockSaved = false;
+                for (let attempt = 0; attempt < 4 && !lockSaved; attempt++) {
+                    const settings = await Backend.getSettings();
+                    const revision = Number(settings.revision || 1);
+                    const unlocks = Object.assign({}, settings.quiz_unlocks || {});
+                    for (const r of newRecords) delete unlocks[`${r.u}__${r.cid}`];
+                    const save = await client.from('atc_app_settings')
+                        .update({quiz_unlocks: unlocks, revision: revision + 1})
+                        .eq('id', true).eq('revision', revision)
+                        .select('id');
+                    if (save.error) throw save.error;
+                    lockSaved = !!(save.data && save.data.length);
+                }
+                if (!lockSaved) throw new Error('其他裝置正在更新系統設定，已停止鎖定狀態寫入，請重新整理並確認。');
             } catch (err) {
                 await Backend.loadState();
                 Admin.renderScores();
@@ -7302,6 +7313,48 @@ const Admin = {
         }
     },
 
+    toggleScoreExportMenu: function(button) {
+        const menu = button && button.closest('.score-export-dropdown');
+        if (!menu) return;
+        const open = !menu.classList.contains('open');
+        document.querySelectorAll('.score-export-dropdown.open').forEach(el => {
+            el.classList.remove('open');
+            const trigger = el.querySelector('[aria-expanded]');
+            if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        });
+        menu.classList.toggle('open', open);
+        button.setAttribute('aria-expanded', String(open));
+        if (!this._scoreExportMenuEventsReady) {
+            this._scoreExportMenuEventsReady = true;
+            document.addEventListener('click', event => {
+                if (event.target.closest('.score-export-dropdown')) return;
+                document.querySelectorAll('.score-export-dropdown.open').forEach(el => {
+                    el.classList.remove('open');
+                    const trigger = el.querySelector('[aria-expanded]');
+                    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+                });
+            });
+            document.addEventListener('keydown', event => {
+                if (event.key !== 'Escape') return;
+                document.querySelectorAll('.score-export-dropdown.open').forEach(el => {
+                    el.classList.remove('open');
+                    const trigger = el.querySelector('[aria-expanded]');
+                    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+                });
+            });
+        }
+    },
+    runScoreExport: function(kind, button) {
+        const menu = button && button.closest('.score-export-dropdown');
+        if (menu) {
+            menu.classList.remove('open');
+            const trigger = menu.querySelector('[aria-expanded]');
+            if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        }
+        if (kind === 'scores') return this.exportScoreRecords();
+        if (kind === 'answers') return this.exportAnswerDetails();
+        if (kind === 'json') return this.exportScoreJson();
+    },
     renderScores: function() {
         this.scorePage = 1;
         const panel = document.getElementById('panel-score');
@@ -7310,13 +7363,13 @@ const Admin = {
                 <h3>🔍 測驗成績查詢</h3>
                 <div class="header-actions">
                     <div class="score-export-dropdown">
-                        <button type="button" class="btn btn-success btn-sm" onclick="this.parentElement.classList.toggle('open')">📤 匯出成績 ▾</button>
+                        <button type="button" class="btn btn-success btn-sm" aria-haspopup="true" aria-expanded="false" onclick="Admin.toggleScoreExportMenu(this)">📤 匯出資料 ▾</button>
                         <div class="score-export-options">
-                            <button type="button" class="btn btn-outline btn-sm" onclick="Admin.exportScoreRecords();this.closest('.score-export-dropdown').classList.remove('open')">成績 CSV（目前篩選）</button>
-                            <button type="button" class="btn btn-outline btn-sm" onclick="Admin.exportScoreJson();this.closest('.score-export-dropdown').classList.remove('open')">完整成績＋作答 JSON（全部）</button>
+                            <button type="button" class="btn btn-outline btn-sm" onclick="Admin.runScoreExport('scores', this)">匯出篩選成績（CSV）</button>
+                            <button type="button" class="btn btn-outline btn-sm" onclick="Admin.runScoreExport('answers', this)">匯出篩選作答紀錄（CSV）</button>
+                            <button type="button" class="btn btn-outline btn-sm" onclick="Admin.runScoreExport('json', this)">匯出完整成績及作答紀錄（JSON）</button>
                         </div>
                     </div>
-                    <button class="btn btn-answer-export btn-sm" onclick="Admin.exportAnswerDetails()">📤 匯出作答紀錄</button>
                     <button class="btn btn-primary btn-sm" onclick="document.getElementById('scoreJsonImportFile').click()">📥 匯入成績紀錄</button>
                     <input type="file" id="scoreJsonImportFile" class="hidden" accept=".json,application/json" onchange="Admin.importScoreJson(event)">
                 </div>
