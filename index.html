@@ -2944,6 +2944,7 @@ body.question-sort-active .editor-helper {
 .score-export-options .btn { white-space:normal; text-align:left; justify-content:flex-start; }
 @media (max-width:760px) { .score-export-options { left:0; min-width:220px; max-width:90vw; } }
 </style>
+<!-- ATC performance update: parallel batched reads; safe local cache handling -->
 </head>
 <body oncontextmenu="return false;"> 
 
@@ -3274,26 +3275,28 @@ const Backend = {
         try {
             this.setStatus('Supabase 連線檢查中...', 'var(--warning-color)');
             const client = this.client();
-            // 同時讀取設定及完整成績紀錄；分批查詢避免 Supabase 單次結果筆數上限。
-            // 保留完整 record_json，確保舊成績、簡答人工計分、鎖定及匯出功能相容。
-            const readAllRecords = async () => {
+            // 啟動時只傳輸必要的成績摘要，不下載龐大的 record_json 與逐題明細。
+            // 仍保留全部成績的「輕量索引」，以兼容現有測驗鎖定、查詢及刪除。
+            const readScoreSummaries = async () => {
                 const batchSize = 500;
-                const rows = [];
+                const records = [];
                 for (let offset = 0; ; offset += batchSize) {
                     const page = await client.from('atc_quiz_records')
-                        .select('*')
-                        .order('submitted_at', { ascending: true })
-                        .order('id', { ascending: true })
+                        .select('id,user_code,employee_id,user_name,course_id,course_title,score,pass_score,date_text,note')
+                        .order('id', {ascending: true})
                         .range(offset, offset + batchSize - 1);
                     if (page.error) throw page.error;
-                    const batch = page.data || [];
-                    rows.push(...batch);
-                    if (batch.length < batchSize) break;
+                    const rows = page.data || [];
+                    records.push(...rows.map(row => {
+                        const r = this.recordFromRow(row);
+                        r.__summaryOnly = true;
+                        return r;
+                    }));
+                    if (rows.length < batchSize) break;
                 }
-                return rows.map(row => this.recordFromRow(row));
+                return records;
             };
-            // 先讀取小量系統設定與科目，立即更新首頁；完整成績在第二階段讀取。
-            // 即使成績量很大，也不讓首頁科目一直顯示空白。
+            const recordsPromise = readScoreSummaries().then(data => ({data}), error => ({error}));
             const settings = await this.getSettings();
             const courses = Array.isArray(settings.courses) ? settings.courses : [];
             if (courses.length) {
@@ -3306,8 +3309,10 @@ const Backend = {
                 if (App.renderSelects) App.renderSelects();
                 if (App.updateLoginStatus) App.updateLoginStatus();
             }
-            this.setStatus('科目已載入，正在同步測驗成績...', 'var(--warning-color)');
-            const records = await readAllRecords();
+            this.setStatus('科目已載入，正在同步成績摘要與測驗鎖定...', 'var(--warning-color)');
+            const recordResult = await recordsPromise;
+            if (recordResult.error) throw recordResult.error;
+            const records = recordResult.data;
             const quizUnlocksRaw = settings.quiz_unlocks && typeof settings.quiz_unlocks === 'object' ? settings.quiz_unlocks : {};
             const systemSettingsFromColumn = settings.system_settings && typeof settings.system_settings === 'object' ? settings.system_settings : {};
             const systemSettingsFromFallback = quizUnlocksRaw.__system_settings && typeof quizUnlocksRaw.__system_settings === 'object' ? quizUnlocksRaw.__system_settings : {};
@@ -3335,7 +3340,7 @@ const Backend = {
             });
             // 大量逐題紀錄可能超過瀏覽器 localStorage 容量，不應因此判定雲端載入失敗。
             try {
-                localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(App.state));
+                localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(Object.assign({}, App.state, {records: []})));
             } catch (cacheErr) {
                 console.warn('本機快取容量不足，使用已成功載入的雲端資料。', cacheErr);
             }
@@ -3353,8 +3358,42 @@ const Backend = {
             return false;
         }
     },
+    fetchFullRecord: async function(record) {
+        if (!record || !record.__summaryOnly) return record;
+        if (!this.enabled()) throw new Error('未連線 Supabase，無法讀取逐題紀錄。');
+        const id = String(record.recordId || record.id || '');
+        const { data, error } = await this.client().from('atc_quiz_records')
+            .select('*').eq('id', id).maybeSingle();
+        if (error) throw error;
+        if (!data) throw new Error('此筆成績已不存在，請重新整理。');
+        return this.recordFromRow(data);
+    },
+    ensureFullRecordAt: async function(index) {
+        const record = App.state.records[index];
+        if (!record) throw new Error('找不到這筆成績。');
+        if (!record.__summaryOnly) return record;
+        const full = await this.fetchFullRecord(record);
+        // 若在請求期間成績列表已刷新，不把舊結果寫入其他筆紀錄。
+        if (App.state.records[index] === record) App.state.records[index] = full;
+        return full;
+    },
+    loadAllFullRecordsForExport: async function() {
+        if (!this.enabled()) return (App.state.records || []).slice();
+        const size = 400;
+        const all = [];
+        for (let offset = 0; ; offset += size) {
+            const {data,error} = await this.client().from('atc_quiz_records')
+                .select('*').order('id',{ascending:true})
+                .range(offset,offset+size-1);
+            if (error) throw error;
+            const rows = data || [];
+            all.push(...rows.map(row => this.recordFromRow(row)));
+            if (rows.length < size) break;
+        }
+        return all;
+    },
     saveState: async function(state) {
-        localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(state));
+        try { localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(state)); } catch (cacheErr) { console.warn('快取容量不足：不影響 Supabase 儲存', cacheErr); }
         if (!this.enabled()) return true;
         this.saving = true;
         this.setStatus('Supabase 寫入中...', 'var(--warning-color)');
@@ -3663,6 +3702,14 @@ const Backup = {
 
             if (!Array.isArray(state.courses)) state.courses = [];
             if (!Array.isArray(state.records)) state.records = [];
+            // 完整備份必須包含所有逐題資訊，不可將只含摘要的狀態當作完整備份。
+            if (typeof Backend !== 'undefined' && Backend.enabled()) {
+                try {
+                    state = Object.assign({}, state, { records: await Backend.loadAllFullRecordsForExport() });
+                } catch (err) {
+                    throw new Error('完整成績資料下載失敗，本次不產生不完整備份：' + (err.message || err));
+                }
+            }
             if (!state.users || typeof state.users !== "object") state.users = {};
             if (!state.quizLocks || typeof state.quizLocks !== "object") state.quizLocks = {};
             if (!state.quizUnlocks || typeof state.quizUnlocks !== "object") state.quizUnlocks = {};
@@ -3735,7 +3782,7 @@ const Backup = {
 
 const App = {
     cloudReady: false,
-    state: JSON.parse(localStorage.getItem('ATC_PRO_CLOUD')) || { courses: [], records: [], users: {}, quizLocks: {}, quizUnlocks: {}, adminPw: "rctp3023" },
+    state: (() => { try { return JSON.parse(localStorage.getItem('ATC_PRO_CLOUD')) || { courses: [], records: [], users: {}, quizLocks: {}, quizUnlocks: {}, adminPw: "rctp3023" }; } catch (_) { return { courses: [], records: [], users: {}, quizLocks: {}, quizUnlocks: {}, adminPw: "rctp3023" }; } })(),
     user: "", employeeId: "", activeCourse: null, isInstructor: false, lastOpenedCourseId: null, currentAdminTab: 'score', quizInProgress: false,
     scoreSyncPending: false, recoveredInterruptedQuiz: null, pendingScrollQuestion: null,
     pendingQuizKey: 'ATC_PENDING_QUIZ',
@@ -4049,7 +4096,7 @@ const App = {
         }
     },
     save: function() {
-        localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state));
+        try { localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state)); } catch (cacheErr) { console.warn('快取容量不足：使用記憶體狀態', cacheErr); }
         this.markPendingCloudSync();
         this.savePromise = Backend.saveState(JSON.parse(JSON.stringify(this.state)));
         return this.savePromise;
@@ -4080,13 +4127,13 @@ const App = {
         }
 
         this.normalizeUsers();
-        localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state));
+        try { localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state)); } catch (cacheErr) { console.warn('快取容量不足：使用記憶體狀態', cacheErr); }
         Backend.setStatus(successText, 'var(--success-color)');
         return true;
     },
     syncUsersOnly: async function(successText = '帳號資料已寫入 Supabase完成', failureText = '帳號資料已保存在本機，但 Supabase 寫入失敗') {
         this.normalizeUsers();
-        localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state));
+        try { localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state)); } catch (cacheErr) { console.warn('快取容量不足：使用記憶體狀態', cacheErr); }
         const result = await Backend.syncUsers(JSON.parse(JSON.stringify(this.state.users)), JSON.parse(JSON.stringify(this.state.userNames || {})));
         if (result && result.ok) {
             Backend.setStatus(successText, 'var(--success-color)');
@@ -4097,7 +4144,7 @@ const App = {
         return false;
     },
     saveWithNotice: async function(successText, failureText) {
-        localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state));
+        try { localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state)); } catch (cacheErr) { console.warn('快取容量不足：使用記憶體狀態', cacheErr); }
         if (Backend.enabled() && !this.cloudReady) {
             Backend.setStatus('尚未成功連線 Supabase，禁止儲存以避免覆蓋資料庫', 'var(--danger-color)');
             alert('尚未成功連線 Supabase。為避免本機舊資料覆蓋資料庫，請重新整理並確認 Supabase 連線正常後再操作。');
@@ -4133,7 +4180,7 @@ const App = {
         // 成績與逐題作答資料增加後可能超過 localStorage 5MB 左右的容量限制。
         // 快取僅是便利功能；失敗絕不可中止首頁科目或登入介面渲染。
         try {
-            localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state));
+            try { localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state)); } catch (cacheErr) { console.warn('快取容量不足：使用記憶體狀態', cacheErr); }
             return true;
         } catch (err) {
             console.warn('成績資料過大，略過本機快取；資料仍以 Supabase 為準。', err);
@@ -4141,7 +4188,7 @@ const App = {
         }
     },
     saveBackground: function() {
-        localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state));
+        try { localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state)); } catch (cacheErr) { console.warn('快取容量不足：使用記憶體狀態', cacheErr); }
         this.markPendingCloudSync();
         const snapshot = JSON.parse(JSON.stringify(this.state));
         this.savePromise = Backend.saveState(snapshot)
@@ -4383,7 +4430,7 @@ const App = {
             if (Array.isArray(result.data.state.records)) this.state.records = result.data.state.records;
         }
 
-        localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state));
+        try { localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state)); } catch (cacheErr) { console.warn('快取容量不足：使用記憶體狀態', cacheErr); }
         return true;
     },
     unlockQuiz: async function(user, courseId) {
@@ -4412,7 +4459,7 @@ const App = {
             if (Array.isArray(result.data.state.records)) this.state.records = result.data.state.records;
         }
 
-        localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state));
+        try { localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state)); } catch (cacheErr) { console.warn('快取容量不足：使用記憶體狀態', cacheErr); }
         return true;
     },
     
@@ -6831,7 +6878,9 @@ const Admin = {
         return { details, shortItems, autoScore };
     },
     editFinalScore: async function(recordIndex) {
-        const r = App.state.records[recordIndex];
+        let r;
+        try { r = await Backend.ensureFullRecordAt(recordIndex); }
+        catch (err) { return alert('人工計分資料讀取失敗：' + (err.message || err)); }
         if (!r) return alert('找不到此筆測驗紀錄。');
         if (r.manualScoreFinalized) {
             const okToEdit = confirm(App.getSystemSetting('manualScoreConfirmText') || '此筆成績已完成人工計分，是否要修改計分？');
@@ -6885,7 +6934,7 @@ const Admin = {
         const ok = await Admin.withButtonStatus(async () => {
             const result = await Backend.updateScoreRecord(r);
             if (!(result && result.ok)) return false;
-            localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(App.state));
+            try { localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(Object.assign({}, App.state, {records: []}))); } catch (_) {}
             return true;
         }, { syncingText: '寫入中...', successText: '✅ 已寫入', failText: '⚠️ 寫入失敗' });
 
@@ -6914,7 +6963,7 @@ const Admin = {
             } else {
                 App.state.records.splice(recordIndex, 1);
             }
-            localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(App.state));
+            try { localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(Object.assign({}, App.state, {records: []}))); } catch (_) {}
             return true;
         }, { syncingText: '寫入中...', successText: '✅ 已寫入', failText: '⚠️ 寫入失敗' });
 
@@ -6950,7 +6999,7 @@ const Admin = {
             } else {
                 uniqueIndices.forEach(idx => App.state.records.splice(idx, 1));
             }
-            localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(App.state));
+            try { localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(Object.assign({}, App.state, {records: []}))); } catch (_) {}
             return true;
         }, { syncingText: '寫入中...', successText: '✅ 已寫入', failText: '⚠️ 寫入失敗' });
 
@@ -6977,16 +7026,19 @@ const Admin = {
             return matchU && matchC;
         }).slice().reverse();
     },
-    exportScoreJson: function() {
+    exportScoreJson: async function() {
         // 完整成績 JSON：刻意不套用目前畫面搜尋/分頁，以利未來移轉與完整還原。
         const records = Array.isArray(App.state.records) ? App.state.records : [];
         if (!records.length) return alert('目前沒有可匯出的成績紀錄。');
         if (!confirm(`將匯出全部 ${records.length} 筆成績及逐題作答紀錄（JSON）。\n包含員工識別及答題內容，請妥善保存。\n\n確定下載？`)) return;
+        let fullRecords;
+        try { fullRecords = await Backend.loadAllFullRecordsForExport(); }
+        catch (err) { return alert('完整成績下載失敗，已取消匯出：' + (err.message || err)); }
         const payload = {
             format: 'ATC_SCORE_RECORDS', version: 1,
             exportedAt: new Date().toISOString(),
-            recordCount: records.length,
-            records: records.map(r => Backend.normalizeRecordForDb(r))
+            recordCount: fullRecords.length,
+            records: fullRecords.map(r => Backend.normalizeRecordForDb(r))
         };
         const blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json;charset=utf-8'});
         const now = new Date();
@@ -7105,8 +7157,11 @@ const Admin = {
         document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
     },
-    exportAnswerDetails: function() {
+    exportAnswerDetails: async function() {
         const items = this.getFilteredScoreItems();
+        try {
+            for (const item of items) item.r = await Backend.ensureFullRecordAt(item.idx);
+        } catch (err) { return alert('逐題資料下載失敗，已取消匯出：' + (err.message || err)); }
         if (!items.length) return alert('目前篩選條件下沒有可匯出的測驗成績。');
         const rows = [[
             '代字', '員工編號', '姓名', '測驗科目', '總分', '及格分數', '考核日期',
@@ -7181,8 +7236,10 @@ const Admin = {
         if (typeof Quiz !== 'undefined' && Quiz.formatOptionText) return Quiz.formatOptionText(text);
         return Admin.esc(String(text || ''));
     },
-    showScoreDetail: function(recordIndex) {
-        const r = App.state.records[recordIndex];
+    showScoreDetail: async function(recordIndex) {
+        let r;
+        try { r = await Backend.ensureFullRecordAt(recordIndex); }
+        catch (err) { return alert('逐題資料讀取失敗：' + (err.message || err)); }
         if (!r) return alert('找不到此筆測驗紀錄。');
         const overlay = document.getElementById('scoreDetailOverlay');
         const title = document.getElementById('scoreDetailTitle');
@@ -7312,9 +7369,9 @@ const Admin = {
                         const course = App.state.courses.find(c => c.id === r.cid || c.title === r.c);
                         const locked = course ? App.isQuizLocked(r.u, course.id) : false;
                         const passScore = Number(r.passScore || (course ? App.getPassScore(course) : 70));
-                        const hasShortAnswer = Array.isArray(r.answerDetails) && r.answerDetails.some(ans => ans && (ans.questionType === 'short' || ans.needsManualScore || ans.manualScore !== undefined));
+                        const hasShortAnswer = !!r.__summaryOnly || (Array.isArray(r.answerDetails) && r.answerDetails.some(ans => ans && (ans.questionType === 'short' || ans.needsManualScore || ans.manualScore !== undefined)));
                         const manualFinalized = !!r.manualScoreFinalized;
-                        const manualScoreBtnText = manualFinalized ? '已計分' : '待計分';
+                        const manualScoreBtnText = r.__summaryOnly ? '查看計分' : (manualFinalized ? '已計分' : '待計分');
                         const manualScoreBtnTitle = manualFinalized ? '此筆已完成人工計分，點擊後可確認是否修改' : '為簡答題進行人工計分';
                         const safeUser = String(r.u).replace(/'/g, "\'");
                         return `
@@ -7389,8 +7446,13 @@ const Quiz = {
             account.employeeId = String(App.employeeId || '');
             account.pw = '';
             App.state.users[App.user] = account;
-            const ok = await App.syncUsersOnly('員工編號已同步完成', '員工編號同步失敗，雲端資料未變更。請確認 Web App 已重新部署。');
-            if (!ok && Backend.enabled()) { this.setScoreSyncOverlay(false); resetStartButton(); return; }
+            // 員工編號同步不應阻擋進入測驗；雲端成績與鎖定已在登入階段確認。
+            // 僅在員工編號變更時，同步小量帳號資料，避免重複處理整份逐題紀錄。
+            const needsEmployeeSync = String(currentEmployeeId || '') !== employeeIdInput;
+            this._pendingEmployeeSync = needsEmployeeSync ? {
+                users: JSON.parse(JSON.stringify(App.state.users || {})),
+                userNames: JSON.parse(JSON.stringify(App.state.userNames || {}))
+            } : null;
         } else {
             this.setScoreSyncOverlay(true, '正在載入測驗題目，完成後會自動進入測驗。', '測驗準備中', '請稍候，不要重複點擊開始考核。');
         }
@@ -7419,6 +7481,16 @@ const Quiz = {
         App.showSec('sec-quiz');
         this.setScoreSyncOverlay(false);
         resetStartButton();
+        // 畫面已進入測驗後才同步員工編號，避免網路延遲讓使用者卡在準備中。
+        const pendingSync = this._pendingEmployeeSync;
+        this._pendingEmployeeSync = null;
+        if (pendingSync && Backend.enabled()) {
+            Backend.syncUsers(pendingSync.users, pendingSync.userNames)
+                .then(result => {
+                    if (!(result && result.ok)) console.warn('員工編號暫未同步成功；測驗不受影響。');
+                })
+                .catch(err => console.warn('員工編號同步延遲：', err));
+        }
     },
     formatOptionText: function(text) {
         const raw = String(text || '').trim();
