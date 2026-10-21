@@ -4215,9 +4215,25 @@ const App = {
             }
         });
     },
+    // 帳號代字不區分英文字母大小寫。優先沿用既有帳號鍵值，避免改動歷史紀錄。
+    normalizeUserCode: function(code) {
+        return String(code || '').trim().toUpperCase();
+    },
+    resolveUserCode: function(code) {
+        const input = String(code || '').trim();
+        const target = this.normalizeUserCode(input);
+        if (!target) return '';
+        const existing = Object.keys((this.state && this.state.users) || {});
+        const matches = existing.filter(k => this.normalizeUserCode(k) === target);
+        if (matches.length) {
+            // 若已有大小寫重複的舊帳號，不自動合併；優先固定使用大寫鍵值。
+            return matches.find(k => k === target) || matches.sort((a,b) => a.localeCompare(b))[0];
+        }
+        return target;
+    },
     getUserRecord: function(code) {
         this.normalizeUsers();
-        return this.state.users[code] || null;
+        return this.state.users[this.resolveUserCode(code)] || null;
     },
     getUserEmployeeId: function(code) {
         const rec = this.getUserRecord(code);
@@ -4341,12 +4357,24 @@ const App = {
         this.restoreAdminSession();
 
     },
-    lockKey: function(user, courseId) { return `${user}__${courseId}`; },
-    unlockKey: function(user, courseId) { return `${user}__${courseId}`; },
-    isQuizExplicitlyUnlocked: function(user, courseId) {
-        return !!(this.state.quizUnlocks && this.state.quizUnlocks[this.unlockKey(user, courseId)]);
+    lockKey: function(user, courseId) { return `${this.normalizeUserCode(user)}__${courseId}`; },
+    unlockKey: function(user, courseId) { return `${this.normalizeUserCode(user)}__${courseId}`; },
+    // 舊系統可能已寫入大小寫不同的鎖定鍵值，讀取時一併辨識。
+    hasUserCourseKey: function(collection, user, courseId) {
+        const target = this.normalizeUserCode(user);
+        const course = String(courseId);
+        return Object.entries(collection || {}).some(([key, value]) => {
+            if (!value) return false;
+            const split = key.lastIndexOf('__');
+            return split >= 0 && this.normalizeUserCode(key.slice(0,split)) === target && key.slice(split+2) === course;
+        });
     },
-    isQuizLocked: function(user, courseId) { return !!(this.state.quizLocks && this.state.quizLocks[this.lockKey(user, courseId)]); },
+    isQuizExplicitlyUnlocked: function(user, courseId) {
+        return this.hasUserCourseKey(this.state.quizUnlocks, user, courseId);
+    },
+    isQuizLocked: function(user, courseId) {
+        return this.hasUserCourseKey(this.state.quizLocks, user, courseId) && !this.isQuizExplicitlyUnlocked(user, courseId);
+    },
     lockQuiz: function(user, courseId, courseTitle) {
         if (!this.state.quizLocks) this.state.quizLocks = {};
         if (!this.state.quizUnlocks) this.state.quizUnlocks = {};
@@ -4525,7 +4553,7 @@ const App = {
         document.getElementById('loginCourse').innerHTML = this.state.courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('') || '<option value="">無科目</option>';
     },
     updateLoginStatus: function() {
-        const name = document.getElementById('loginUser').value.trim();
+        const name = this.resolveUserCode(document.getElementById('loginUser').value);
         const cid = document.getElementById('loginCourse').value;
         const area = document.getElementById('loginBtnArea');
         const course = this.state.courses.find(c => c.id == cid);
@@ -4547,7 +4575,7 @@ const App = {
         // 雲端成績與鎖定狀態尚未同步完畢，不可用舊快取判斷能否再次測驗。
         if (Backend.enabled() && !this.cloudReady) return alert('科目已顯示，但測驗成績與鎖定狀態仍在同步中。請待 Supabase 連線正常後再進入測驗。');
         if (this.isInstructor) return alert("管理員請由後台「進入教材/測驗」按鈕進入測試。");
-        let code = document.getElementById('loginUser').value.trim();
+        let code = this.resolveUserCode(document.getElementById('loginUser').value);
         const selectedCourse = this.state.courses.find(c => c.id == document.getElementById('loginCourse').value);
         if (!selectedCourse) return alert("請先選擇科目。");
         if (!code) return alert("請輸入代字。");
