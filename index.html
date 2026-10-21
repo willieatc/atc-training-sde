@@ -2959,10 +2959,11 @@ body.question-sort-active .editor-helper {
                     <span class="badge-instructor hidden">管理員模式</span>
                 </div>
                 <div style="background:#161b22; padding:30px; border-radius:12px; border:1px solid var(--border-color);">
-                    <label>使用者名稱</label>
+                    <label id="loginUserLabel">使用者名稱</label>
                     <input type="text" id="loginUser" class="input-field" placeholder="請輸入代字" oninput="App.updateLoginStatus()">
-                    <label>選擇科目</label>
+                    <label id="loginCourseLabel">選擇科目</label>
                     <select id="loginCourse" class="select-field" onchange="App.updateLoginStatus()"></select>
+                    <div id="loginIntroText" style="font-size:13px; color:#e6edf3; white-space:pre-wrap;"></div>
                     <div id="loginBtnArea" style="margin-top:15px;"></div>
                 </div>
                 <p style="text-align:center; margin-top:20px;">
@@ -3790,6 +3791,41 @@ const App = {
     ADMIN_SESSION_KEY: 'ATC_ADMIN_SESSION_ACTIVE',
     savePromise: null,
     DEFAULT_SYSTEM_SETTINGS: {
+        loginUserLabel: '使用者名稱',
+        loginUserPlaceholder: '請輸入代字',
+        loginCourseLabel: '選擇科目',
+        loginIntroText: '',
+        employeeIdPromptText: '請輸入員工編號：',
+        employeeIdRequiredText: '請輸入員工編號後再進入考核。',
+        quizPreparingText: '正在確認帳號與員工編號，完成後會自動進入測驗。',
+        quizPreparingTitle: '測驗準備中',
+        quizPreparingNote: '請稍候，不要重複點擊開始考核。',
+        quizAlreadyTakenText: '本科目已完成測驗，需由管理員於「測驗成績查詢」解鎖後才能再次測驗。',
+        quizNoQuestionsText: '本科目尚無考題。',
+        scoreExportMenuButtonText: '📤 匯出資料 ▾',
+        scoreExportFilteredButtonText: '匯出篩選成績（CSV）',
+        scoreExportAnswersButtonText: '匯出篩選作答紀錄（CSV）',
+        scoreExportJsonButtonText: '匯出完整成績及作答紀錄（JSON）',
+        scoreImportButtonText: '📥 匯入成績紀錄',
+        scoreUnlockButtonText: '解鎖測驗',
+        scoreDeleteButtonText: '刪除紀錄',
+        scorePrevPageButtonText: '上一頁',
+        scoreNextPageButtonText: '下一頁',
+        editorAddMaterialButtonText: '新增教材',
+        editorRemoveMaterialButtonText: '移除教材',
+        editorDownloadTemplateButtonText: '⇩ 下載範本',
+        editorAddCourseButtonText: '➕ 新增科目',
+        editorSaveButtonText: '💾 儲存變更',
+        editorExportQuestionsButtonText: '📤 匯出題庫',
+        editorImportQuestionsButtonText: '📥 匯入題庫',
+        editorDeleteAllQuestionsButtonText: '刪除所有題目',
+        editorAddQuestionButtonText: '手動加題',
+        editorUploadQuestionImageButtonText: '上傳參考圖片',
+        editorRemoveQuestionImageButtonText: '移除圖片',
+        userChangeAdminPasswordButtonText: '🔐 修改管理員密碼',
+        userDeleteAccountButtonText: '刪除帳號',
+        settingSaveButtonText: '儲存設定',
+        settingResetButtonText: '還原預設',
         appTitle: 'ATC 訓練管理系統',
         appSubtitle: 'RCTP 臺北機場管制臺',
         showCloudStatus: true,
@@ -3885,6 +3921,7 @@ const App = {
         adminPasswordSubmitButtonText: '登入後台',
         adminPasswordSubmitButtonEmoji: ''
     },
+    EXTRA_LABELS: {"loginUserLabel": "使用者名稱", "loginUserPlaceholder": "請輸入代字", "loginCourseLabel": "選擇科目", "loginIntroText": "", "employeeIdPromptText": "請輸入員工編號：", "employeeIdRequiredText": "請輸入員工編號後再進入考核。", "quizPreparingText": "正在確認帳號與員工編號，完成後會自動進入測驗。", "quizPreparingTitle": "測驗準備中", "quizPreparingNote": "請稍候，不要重複點擊開始考核。", "quizAlreadyTakenText": "本科目已完成測驗，需由管理員於「測驗成績查詢」解鎖後才能再次測驗。", "quizNoQuestionsText": "本科目尚無考題。", "scoreExportMenuButtonText": "📤 匯出資料 ▾", "scoreExportFilteredButtonText": "匯出篩選成績（CSV）", "scoreExportAnswersButtonText": "匯出篩選作答紀錄（CSV）", "scoreExportJsonButtonText": "匯出完整成績及作答紀錄（JSON）", "scoreImportButtonText": "📥 匯入成績紀錄", "scoreUnlockButtonText": "解鎖測驗", "scoreDeleteButtonText": "刪除紀錄", "scorePrevPageButtonText": "上一頁", "scoreNextPageButtonText": "下一頁", "editorAddMaterialButtonText": "新增教材", "editorRemoveMaterialButtonText": "移除教材", "editorDownloadTemplateButtonText": "⇩ 下載範本", "editorAddCourseButtonText": "➕ 新增科目", "editorSaveButtonText": "💾 儲存變更", "editorExportQuestionsButtonText": "📤 匯出題庫", "editorImportQuestionsButtonText": "📥 匯入題庫", "editorDeleteAllQuestionsButtonText": "刪除所有題目", "editorAddQuestionButtonText": "手動加題", "editorUploadQuestionImageButtonText": "上傳參考圖片", "editorRemoveQuestionImageButtonText": "移除圖片", "userChangeAdminPasswordButtonText": "🔐 修改管理員密碼", "userDeleteAccountButtonText": "刪除帳號", "settingSaveButtonText": "儲存設定", "settingResetButtonText": "還原預設"} ,
     ensureSystemSettings: function() {
         if (!this.state) this.state = {};
         if (!this.state.systemSettings || typeof this.state.systemSettings !== 'object') this.state.systemSettings = {};
@@ -3950,6 +3987,15 @@ const App = {
         if (titleEl) titleEl.innerText = settings.appTitle || this.DEFAULT_SYSTEM_SETTINGS.appTitle;
         const subtitleEl = document.getElementById('appSubtitleText');
         if (subtitleEl) subtitleEl.innerText = settings.appSubtitle || this.DEFAULT_SYSTEM_SETTINGS.appSubtitle;
+        // 登入頁提示文字由系統設定控制
+        const loginNameLabel = document.getElementById('loginUserLabel');
+        if (loginNameLabel) loginNameLabel.textContent = settings.loginUserLabel;
+        const loginCourseLabel = document.getElementById('loginCourseLabel');
+        if (loginCourseLabel) loginCourseLabel.textContent = settings.loginCourseLabel;
+        const loginUserInput = document.getElementById('loginUser');
+        if (loginUserInput) loginUserInput.placeholder = settings.loginUserPlaceholder;
+        const loginIntro = document.getElementById('loginIntroText');
+        if (loginIntro) { loginIntro.textContent = settings.loginIntroText || ''; loginIntro.style.display = settings.loginIntroText ? '' : 'none'; }
         const cloudStatus = document.getElementById('cloudStatus');
         if (cloudStatus) cloudStatus.style.display = settings.showCloudStatus === false ? 'none' : '';
         const quizWarning = document.getElementById('quizWarningText');
@@ -4920,6 +4966,32 @@ const Admin = {
         setTimeout(() => el.classList.remove('settings-card-highlight'), 900);
     },
 
+    applyModuleButtonLabels: function() {
+        const byGroup = [
+            ['panel-score', 'score'], ['panel-edit', 'edit'], ['panel-rec', 'user'], ['panel-settings', 'settings']
+        ];
+        byGroup.forEach(([id, group]) => {
+            const panel = document.getElementById(id);
+            if (!panel) return;
+            panel.querySelectorAll('button').forEach(btn => {
+                const original = btn.dataset.atcOriginalLabel || btn.textContent.trim();
+                const entry = Object.entries(Admin.MODULE_BUTTON_LABELS).find(([key, data]) => data.group === group && data.defaultText === original);
+                if (!entry) return;
+                if (!btn.dataset.atcOriginalLabel) btn.dataset.atcOriginalLabel = original;
+                const desired = String(App.getSystemSetting(entry[0]) ?? entry[1].defaultText);
+                if (btn.textContent !== desired) btn.textContent = desired;
+            });
+        });
+    },
+    MODULE_BUTTON_LABELS: {"scoreExportMenuButtonText": {"defaultText": "📤 匯出資料 ▾", "group": "score"}, "scoreExportFilteredButtonText": {"defaultText": "匯出篩選成績（CSV）", "group": "score"}, "scoreExportAnswersButtonText": {"defaultText": "匯出篩選作答紀錄（CSV）", "group": "score"}, "scoreExportJsonButtonText": {"defaultText": "匯出完整成績及作答紀錄（JSON）", "group": "score"}, "scoreImportButtonText": {"defaultText": "📥 匯入成績紀錄", "group": "score"}, "scoreUnlockButtonText": {"defaultText": "解鎖測驗", "group": "score"}, "scoreDeleteButtonText": {"defaultText": "刪除紀錄", "group": "score"}, "scorePrevPageButtonText": {"defaultText": "上一頁", "group": "score"}, "scoreNextPageButtonText": {"defaultText": "下一頁", "group": "score"}, "editorAddMaterialButtonText": {"defaultText": "新增教材", "group": "edit"}, "editorRemoveMaterialButtonText": {"defaultText": "移除教材", "group": "edit"}, "editorDownloadTemplateButtonText": {"defaultText": "⇩ 下載範本", "group": "edit"}, "editorAddCourseButtonText": {"defaultText": "➕ 新增科目", "group": "edit"}, "editorSaveButtonText": {"defaultText": "💾 儲存變更", "group": "edit"}, "editorExportQuestionsButtonText": {"defaultText": "📤 匯出題庫", "group": "edit"}, "editorImportQuestionsButtonText": {"defaultText": "📥 匯入題庫", "group": "edit"}, "editorDeleteAllQuestionsButtonText": {"defaultText": "刪除所有題目", "group": "edit"}, "editorAddQuestionButtonText": {"defaultText": "手動加題", "group": "edit"}, "editorUploadQuestionImageButtonText": {"defaultText": "上傳參考圖片", "group": "edit"}, "editorRemoveQuestionImageButtonText": {"defaultText": "移除圖片", "group": "edit"}, "userChangeAdminPasswordButtonText": {"defaultText": "🔐 修改管理員密碼", "group": "user"}, "userDeleteAccountButtonText": {"defaultText": "刪除帳號", "group": "user"}, "settingSaveButtonText": {"defaultText": "儲存設定", "group": "settings"}, "settingResetButtonText": {"defaultText": "還原預設", "group": "settings"}},
+    readExtraLabelSettings: function() {
+        const result = {};
+        Object.keys(App.EXTRA_LABELS).forEach(key => {
+            const field = document.getElementById('settingExtra_' + key);
+            if (field) result[key] = field.value;
+        });
+        return result;
+    },
     renderSettings: function() {
         App.ensureSystemSettings();
         const s = App.state.systemSettings;
@@ -5217,6 +5289,54 @@ const Admin = {
                     </div>
                     ${Admin.renderMenuSettingRow('人員帳號選單', 'AdminRecTab', s.adminRecTabText, s.adminRecTabEmoji)}
                 </div>
+
+                <div class="settings-card"><h4>登入頁｜提示文字</h4>
+                    <div class="settings-row"><label>登入頁｜使用者名稱標籤</label><input id="settingExtra_loginUserLabel" class="input-field" value="${Admin.esc(String(s.loginUserLabel ?? ''))}" placeholder="使用者名稱"></div>
+                    <div class="settings-row"><label>登入頁｜代字輸入提示</label><input id="settingExtra_loginUserPlaceholder" class="input-field" value="${Admin.esc(String(s.loginUserPlaceholder ?? ''))}" placeholder="請輸入代字"></div>
+                    <div class="settings-row"><label>登入頁｜選擇科目標籤</label><input id="settingExtra_loginCourseLabel" class="input-field" value="${Admin.esc(String(s.loginCourseLabel ?? ''))}" placeholder="選擇科目"></div>
+                    <div class="settings-row"><label>登入頁｜額外提醒文字（可留空）</label><input id="settingExtra_loginIntroText" class="input-field" value="${Admin.esc(String(s.loginIntroText ?? ''))}" placeholder=""></div>
+                </div>
+                <div class="settings-card"><h4>測驗前｜提醒視窗</h4>
+                    <div class="settings-row"><label>開始測驗｜員工編號輸入視窗文字</label><input id="settingExtra_employeeIdPromptText" class="input-field" value="${Admin.esc(String(s.employeeIdPromptText ?? ''))}" placeholder="請輸入員工編號："></div>
+                    <div class="settings-row"><label>開始測驗｜未填員工編號提醒</label><input id="settingExtra_employeeIdRequiredText" class="input-field" value="${Admin.esc(String(s.employeeIdRequiredText ?? ''))}" placeholder="請輸入員工編號後再進入考核。"></div>
+                    <div class="settings-row"><label>測驗準備｜主提示文字</label><input id="settingExtra_quizPreparingText" class="input-field" value="${Admin.esc(String(s.quizPreparingText ?? ''))}" placeholder="正在確認帳號與員工編號，完成後會自動進入測驗。"></div>
+                    <div class="settings-row"><label>測驗準備｜視窗標題</label><input id="settingExtra_quizPreparingTitle" class="input-field" value="${Admin.esc(String(s.quizPreparingTitle ?? ''))}" placeholder="測驗準備中"></div>
+                    <div class="settings-row"><label>測驗準備｜補充提醒</label><input id="settingExtra_quizPreparingNote" class="input-field" value="${Admin.esc(String(s.quizPreparingNote ?? ''))}" placeholder="請稍候，不要重複點擊開始考核。"></div>
+                    <div class="settings-row"><label>已測驗鎖定提醒</label><input id="settingExtra_quizAlreadyTakenText" class="input-field" value="${Admin.esc(String(s.quizAlreadyTakenText ?? ''))}" placeholder="本科目已完成測驗，需由管理員於「測驗成績查詢」解鎖後才能再次測驗。"></div>
+                    <div class="settings-row"><label>科目無考題提醒</label><input id="settingExtra_quizNoQuestionsText" class="input-field" value="${Admin.esc(String(s.quizNoQuestionsText ?? ''))}" placeholder="本科目尚無考題。"></div>
+                </div>
+                <div class="settings-card"><h4>測驗成績查詢｜按鈕文字</h4>
+                    <div class="settings-row"><label>成績查詢｜匯出資料按鈕</label><input id="settingExtra_scoreExportMenuButtonText" class="input-field" value="${Admin.esc(String(s.scoreExportMenuButtonText ?? ''))}" placeholder="📤 匯出資料 ▾"></div>
+                    <div class="settings-row"><label>成績查詢｜匯出篩選成績</label><input id="settingExtra_scoreExportFilteredButtonText" class="input-field" value="${Admin.esc(String(s.scoreExportFilteredButtonText ?? ''))}" placeholder="匯出篩選成績（CSV）"></div>
+                    <div class="settings-row"><label>成績查詢｜匯出篩選作答紀錄</label><input id="settingExtra_scoreExportAnswersButtonText" class="input-field" value="${Admin.esc(String(s.scoreExportAnswersButtonText ?? ''))}" placeholder="匯出篩選作答紀錄（CSV）"></div>
+                    <div class="settings-row"><label>成績查詢｜匯出完整 JSON</label><input id="settingExtra_scoreExportJsonButtonText" class="input-field" value="${Admin.esc(String(s.scoreExportJsonButtonText ?? ''))}" placeholder="匯出完整成績及作答紀錄（JSON）"></div>
+                    <div class="settings-row"><label>成績查詢｜匯入成績按鈕</label><input id="settingExtra_scoreImportButtonText" class="input-field" value="${Admin.esc(String(s.scoreImportButtonText ?? ''))}" placeholder="📥 匯入成績紀錄"></div>
+                    <div class="settings-row"><label>成績查詢｜解鎖測驗</label><input id="settingExtra_scoreUnlockButtonText" class="input-field" value="${Admin.esc(String(s.scoreUnlockButtonText ?? ''))}" placeholder="解鎖測驗"></div>
+                    <div class="settings-row"><label>成績查詢｜刪除紀錄</label><input id="settingExtra_scoreDeleteButtonText" class="input-field" value="${Admin.esc(String(s.scoreDeleteButtonText ?? ''))}" placeholder="刪除紀錄"></div>
+                    <div class="settings-row"><label>成績查詢｜上一頁</label><input id="settingExtra_scorePrevPageButtonText" class="input-field" value="${Admin.esc(String(s.scorePrevPageButtonText ?? ''))}" placeholder="上一頁"></div>
+                    <div class="settings-row"><label>成績查詢｜下一頁</label><input id="settingExtra_scoreNextPageButtonText" class="input-field" value="${Admin.esc(String(s.scoreNextPageButtonText ?? ''))}" placeholder="下一頁"></div>
+                </div>
+                <div class="settings-card"><h4>教材與題庫｜按鈕文字</h4>
+                    <div class="settings-row"><label>教材與題庫｜新增教材</label><input id="settingExtra_editorAddMaterialButtonText" class="input-field" value="${Admin.esc(String(s.editorAddMaterialButtonText ?? ''))}" placeholder="新增教材"></div>
+                    <div class="settings-row"><label>教材與題庫｜移除教材</label><input id="settingExtra_editorRemoveMaterialButtonText" class="input-field" value="${Admin.esc(String(s.editorRemoveMaterialButtonText ?? ''))}" placeholder="移除教材"></div>
+                    <div class="settings-row"><label>教材與題庫｜下載範本</label><input id="settingExtra_editorDownloadTemplateButtonText" class="input-field" value="${Admin.esc(String(s.editorDownloadTemplateButtonText ?? ''))}" placeholder="⇩ 下載範本"></div>
+                    <div class="settings-row"><label>教材與題庫｜新增科目</label><input id="settingExtra_editorAddCourseButtonText" class="input-field" value="${Admin.esc(String(s.editorAddCourseButtonText ?? ''))}" placeholder="➕ 新增科目"></div>
+                    <div class="settings-row"><label>教材與題庫｜儲存變更</label><input id="settingExtra_editorSaveButtonText" class="input-field" value="${Admin.esc(String(s.editorSaveButtonText ?? ''))}" placeholder="💾 儲存變更"></div>
+                    <div class="settings-row"><label>教材與題庫｜匯出題庫</label><input id="settingExtra_editorExportQuestionsButtonText" class="input-field" value="${Admin.esc(String(s.editorExportQuestionsButtonText ?? ''))}" placeholder="📤 匯出題庫"></div>
+                    <div class="settings-row"><label>教材與題庫｜匯入題庫</label><input id="settingExtra_editorImportQuestionsButtonText" class="input-field" value="${Admin.esc(String(s.editorImportQuestionsButtonText ?? ''))}" placeholder="📥 匯入題庫"></div>
+                    <div class="settings-row"><label>教材與題庫｜刪除所有題目</label><input id="settingExtra_editorDeleteAllQuestionsButtonText" class="input-field" value="${Admin.esc(String(s.editorDeleteAllQuestionsButtonText ?? ''))}" placeholder="刪除所有題目"></div>
+                    <div class="settings-row"><label>教材與題庫｜手動加題</label><input id="settingExtra_editorAddQuestionButtonText" class="input-field" value="${Admin.esc(String(s.editorAddQuestionButtonText ?? ''))}" placeholder="手動加題"></div>
+                    <div class="settings-row"><label>教材與題庫｜上傳參考圖片</label><input id="settingExtra_editorUploadQuestionImageButtonText" class="input-field" value="${Admin.esc(String(s.editorUploadQuestionImageButtonText ?? ''))}" placeholder="上傳參考圖片"></div>
+                    <div class="settings-row"><label>教材與題庫｜移除圖片</label><input id="settingExtra_editorRemoveQuestionImageButtonText" class="input-field" value="${Admin.esc(String(s.editorRemoveQuestionImageButtonText ?? ''))}" placeholder="移除圖片"></div>
+                </div>
+                <div class="settings-card"><h4>人員帳號管理｜按鈕文字</h4>
+                    <div class="settings-row"><label>人員帳號｜修改管理員密碼</label><input id="settingExtra_userChangeAdminPasswordButtonText" class="input-field" value="${Admin.esc(String(s.userChangeAdminPasswordButtonText ?? ''))}" placeholder="🔐 修改管理員密碼"></div>
+                    <div class="settings-row"><label>人員帳號｜刪除帳號</label><input id="settingExtra_userDeleteAccountButtonText" class="input-field" value="${Admin.esc(String(s.userDeleteAccountButtonText ?? ''))}" placeholder="刪除帳號"></div>
+                </div>
+                <div class="settings-card"><h4>系統設定｜按鈕文字</h4>
+                    <div class="settings-row"><label>系統設定｜儲存設定</label><input id="settingExtra_settingSaveButtonText" class="input-field" value="${Admin.esc(String(s.settingSaveButtonText ?? ''))}" placeholder="儲存設定"></div>
+                    <div class="settings-row"><label>系統設定｜還原預設</label><input id="settingExtra_settingResetButtonText" class="input-field" value="${Admin.esc(String(s.settingResetButtonText ?? ''))}" placeholder="還原預設"></div>
+                </div>
                 <div class="settings-actions">
                     <button class="btn btn-success" onclick="Admin.saveSystemSettings()">儲存設定</button>
                     <button class="btn btn-outline" onclick="Admin.resetSystemSettings()">還原預設</button>
@@ -5343,7 +5463,7 @@ const Admin = {
             showSidebarMenuEmoji: !!((document.getElementById('settingShowSidebarMenuEmoji') || {}).checked),
             sidebarMenuEmojiPosition: (document.getElementById('settingSidebarMenuEmojiPosition') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.sidebarMenuEmojiPosition,
             adminSettingsTabSubText: (document.getElementById('settingAdminSettingsTabSubText') || {}).value || ''
-        }, buttonPairs, menuPairs);
+        }, buttonPairs, menuPairs, Admin.readExtraLabelSettings());
     },
     uploadSettingBackgroundImage: async function(input) {
         const file = input && input.files && input.files[0] ? input.files[0] : null;
@@ -7514,14 +7634,14 @@ const Quiz = {
         if (quizStatus) { quizStatus.dataset.dynamicStatus = 'default'; quizStatus.innerText = App.getSystemSetting('quizCompletionText') || '送出時會檢查未作答題目。'; quizStatus.style.color = '#8b949e'; }
         const submitBtn = document.getElementById('quizSubmitBtn');
         if (submitBtn) submitBtn.innerText = App.buttonLabel('quizSubmitButtonText', 'quizSubmitButtonEmoji', App.DEFAULT_SYSTEM_SETTINGS.quizSubmitButtonText, App.DEFAULT_SYSTEM_SETTINGS.quizSubmitButtonEmoji);
-        if (!App.isInstructor && App.isQuizLocked(App.user, App.activeCourse.id)) { resetStartButton(); return alert("本科目已完成測驗，需由管理員於「測驗成績查詢」解鎖後才能再次測驗。"); }
-        if(!App.activeCourse.questions.length) { resetStartButton(); return alert("本科目尚無考題。"); }
+        if (!App.isInstructor && App.isQuizLocked(App.user, App.activeCourse.id)) { resetStartButton(); return alert(App.getSystemSetting('quizAlreadyTakenText')); }
+        if(!App.activeCourse.questions.length) { resetStartButton(); return alert(App.getSystemSetting('quizNoQuestionsText')); }
         if (!App.isInstructor) {
             const currentEmployeeId = App.getUserEmployeeId(App.user);
-            const input = prompt("請輸入員工編號：", currentEmployeeId || "");
+            const input = prompt(App.getSystemSetting('employeeIdPromptText'), currentEmployeeId || "");
             const employeeIdInput = String(input === null ? '' : input).trim();
-            if (!employeeIdInput) { resetStartButton(); return alert("請輸入員工編號後再進入考核。"); }
-            this.setScoreSyncOverlay(true, '正在確認帳號與員工編號，完成後會自動進入測驗。', '測驗準備中', '請稍候，不要重複點擊開始考核。');
+            if (!employeeIdInput) { resetStartButton(); return alert(App.getSystemSetting('employeeIdRequiredText')); }
+            this.setScoreSyncOverlay(true, App.getSystemSetting('quizPreparingText'), App.getSystemSetting('quizPreparingTitle'), App.getSystemSetting('quizPreparingNote'));
             App.employeeId = employeeIdInput; // 保留前導 0，不轉成數字。
             const account = App.getUserRecord(App.user) || { employeeId: '', name: '', pw: '' };
             account.employeeId = String(App.employeeId || '');
@@ -8153,6 +8273,23 @@ if (App.recoveredInterruptedQuiz) {
         alert(`系統偵測到 ${App.recoveredInterruptedQuiz.u} 的「${App.recoveredInterruptedQuiz.c}」測驗頁面曾刷新或未正常送出，已自動記錄 0 分並鎖定為已測驗。`);
     }, 200);
 }
+
+// 各模組動態重繪後同步自訂按鈕文字（不更動原本操作函式）。
+document.addEventListener('DOMContentLoaded', () => {
+    const targets = ['panel-score', 'panel-edit', 'panel-rec', 'panel-settings'];
+    let refreshing = false;
+    const refresh = () => {
+        if (refreshing) return;
+        refreshing = true;
+        try { if (typeof Admin !== 'undefined' && Admin.applyModuleButtonLabels) Admin.applyModuleButtonLabels(); }
+        finally { refreshing = false; }
+    };
+    targets.forEach(id => {
+        const panel = document.getElementById(id);
+        if (panel) new MutationObserver(refresh).observe(panel, {childList:true, subtree:true});
+    });
+    refresh();
+});
 </script>
 </body>
 </html>
